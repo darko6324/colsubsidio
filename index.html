@@ -382,8 +382,9 @@
 <div id="loader">
   <div class="logo-mark" style="width:56px;height:56px;font-size:18px;border-radius:14px;">CS</div>
   <div class="spinner"></div>
-  <div class="loader-text">Cargando datos logísticos…</div>
+  <div class="loader-text">Conectando con Google Sheets…</div>
   <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+  <div id="loader-detail" style="font-size:11px;color:#94a3b8;font-family:'DM Mono',monospace;margin-top:4px">Iniciando…</div>
 </div>
 
 <!-- TOP HEADER -->
@@ -632,12 +633,27 @@
 </section>
 
 <script>
-// ═══════════════════════════════════════════════════════════
+// =============================================================
 //  DATA LAYER
-// ═══════════════════════════════════════════════════════════
-const BASE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS56aIMrnjnUKff8A5LXt92vZN6ME2LGBpAkRyBKdgLgz8dxSNKApXFBZhKnCzb7Q/pub';
-const SHEET_NC    = `${BASE_URL}?gid=0&output=csv`;
-const SHEET_CROSS = `${BASE_URL}?gid=1894567489&output=csv`; // will try common gid
+// =============================================================
+
+// URLs confirmadas por el usuario
+// NC  = primera hoja (gid=0, default)
+// CROSS = segunda hoja — GID se descubre automaticamente
+const BASE_PUB = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS56aIMrnjnUKff8A5LXt92vZN6ME2LGBpAkRyBKdgLgz8dxSNKApXFBZhKnCzb7Q/pub';
+// URLs exactas confirmadas por el usuario
+const URL_NC    = BASE_PUB + '?gid=0&single=true&output=csv';
+const URL_CROSS = BASE_PUB + '?gid=480391335&single=true&output=csv';
+
+// GIDs fallback (no se usan si las URLs exactas funcionan)
+const CROSS_GIDS = ['480391335'];
+
+// Proxies CORS — el browser los intenta en orden
+const PROXY_FNS = [
+  function(u){ return u; },
+  function(u){ return 'https://corsproxy.io/?' + encodeURIComponent(u); },
+  function(u){ return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); }
+];
 
 let rawNC = [], rawCROSS = [];
 let charts = {};
@@ -645,618 +661,694 @@ let mapInstance = null, heatLayer = null;
 let currentPage = 1;
 const PAGE_SIZE = 20;
 let detailData = [];
+let ncFirstRowKey = '';  // to detect if CROSS == same sheet as NC
 
-// Field name mapping (will be auto-detected)
+// Field name mapping (auto-detected)
 let FIELDS = {
-  estado: null,       // e.g. "estado", "ESTADO", "estado_entrega"
-  ciudad: null,       // e.g. "ciudad", "CIUDAD", "municipio"
-  fecha: null,        // date field
-  placa: null,        // placa/conductor
-  novedad: null,      // cluster_novedad
-  pe: null,           // tiempo proceso
+  estado: null,
+  ciudad: null,
+  fecha: null,
+  placa: null,
+  novedad: null,
+  pe: null,
   lat: null,
   lon: null,
 };
 
-// Colombia city coordinates lookup
+// Colombia city coordinates
 const CITY_COORDS = {
-  'BOGOTA':{'lat':4.711,'lon':-74.0721},'BOGOTÁ':{'lat':4.711,'lon':-74.0721},
-  'MEDELLIN':{'lat':6.2442,'lon':-75.5812},'MEDELLÍN':{'lat':6.2442,'lon':-75.5812},
-  'CALI':{'lat':3.4516,'lon':-76.5319},'BARRANQUILLA':{'lat':10.9685,'lon':-74.7813},
-  'CARTAGENA':{'lat':10.3932,'lon':-75.4832},'BUCARAMANGA':{'lat':7.1193,'lon':-73.1227},
-  'PEREIRA':{'lat':4.8133,'lon':-75.6961},'MANIZALES':{'lat':5.0703,'lon':-75.5138},
-  'IBAGUE':{'lat':4.4389,'lon':-75.2322},'IBAGUÉ':{'lat':4.4389,'lon':-75.2322},
-  'CUCUTA':{'lat':7.8939,'lon':-72.5078},'CÚCUTA':{'lat':7.8939,'lon':-72.5078},
-  'SANTA MARTA':{'lat':11.2408,'lon':-74.2116},'VILLAVICENCIO':{'lat':4.142,'lon':-73.6266},
-  'ARMENIA':{'lat':4.5339,'lon':-75.6811},'NEIVA':{'lat':2.9273,'lon':-75.2819},
-  'MONTERIA':{'lat':8.7575,'lon':-75.8878},'MONTERÍA':{'lat':8.7575,'lon':-75.8878},
-  'VALLEDUPAR':{'lat':10.4631,'lon':-73.2532},'PASTO':{'lat':1.2136,'lon':-77.2811},
-  'SINCELEJO':{'lat':9.3047,'lon':-75.3978},'POPAYAN':{'lat':2.4448,'lon':-76.6147},
-  'POPAYÁN':{'lat':2.4448,'lon':-76.6147},'TUNJA':{'lat':5.5353,'lon':-73.3678},
-  'FLORENCIA':{'lat':1.6144,'lon':-75.6063},'RIOHACHA':{'lat':11.5444,'lon':-72.9073},
-  'QUIBDO':{'lat':5.6919,'lon':-76.6583},'QUIBDÓ':{'lat':5.6919,'lon':-76.6583},
-  'ARAUCA':{'lat':7.0897,'lon':-70.7617},'YOPAL':{'lat':5.3378,'lon':-72.3959},
-  'MOCOA':{'lat':1.1523,'lon':-76.6498},'MITU':{'lat':1.2534,'lon':-70.233},
-  'PUERTO INIRIDA':{'lat':3.865,'lon':-67.9239},'SAN JOSE DEL GUAVIARE':{'lat':2.5701,'lon':-72.6418},
-  'LETICIA':{'lat':-4.2153,'lon':-69.9407},'PUERTO CARREÑO':{'lat':6.1885,'lon':-67.4865},
-  'BARRANCABERMEJA':{'lat':7.0652,'lon':-73.8547},'GIRARDOT':{'lat':4.3047,'lon':-74.8018},
-  'DUITAMA':{'lat':5.8254,'lon':-73.0275},'SOGAMOSO':{'lat':5.7173,'lon':-72.9275},
-  'CHIQUINQUIRA':{'lat':5.617,'lon':-73.8181},'BUENAVENTURA':{'lat':3.8801,'lon':-77.0311},
-  'PALMIRA':{'lat':3.5394,'lon':-76.3036},'BELLO':{'lat':6.3295,'lon':-75.5577},
-  'ITAGUI':{'lat':6.1846,'lon':-75.5996},'ENVIGADO':{'lat':6.1752,'lon':-75.5849},
-  'SOACHA':{'lat':4.5794,'lon':-74.2149},'CHIA':{'lat':4.8607,'lon':-74.0567},
-  'ZIPAQUIRA':{'lat':5.0222,'lon':-74.0061},'FUSAGASUGA':{'lat':4.3462,'lon':-74.3645},
+  'BOGOTA':{'lat':4.711,'lon':-74.0721},'BOGOTA D.C.':{'lat':4.711,'lon':-74.0721},
+  'BOGOTA DC':{'lat':4.711,'lon':-74.0721},'BOGOTA D C':{'lat':4.711,'lon':-74.0721},
+  'MEDELLIN':{'lat':6.2442,'lon':-75.5812},
+  'CALI':{'lat':3.4516,'lon':-76.5319},
+  'BARRANQUILLA':{'lat':10.9685,'lon':-74.7813},
+  'CARTAGENA':{'lat':10.3932,'lon':-75.4832},
+  'BUCARAMANGA':{'lat':7.1193,'lon':-73.1227},
+  'PEREIRA':{'lat':4.8133,'lon':-75.6961},
+  'MANIZALES':{'lat':5.0703,'lon':-75.5138},
+  'IBAGUE':{'lat':4.4389,'lon':-75.2322},
+  'CUCUTA':{'lat':7.8939,'lon':-72.5078},
+  'SANTA MARTA':{'lat':11.2408,'lon':-74.2116},
+  'VILLAVICENCIO':{'lat':4.142,'lon':-73.6266},
+  'ARMENIA':{'lat':4.5339,'lon':-75.6811},
+  'NEIVA':{'lat':2.9273,'lon':-75.2819},
+  'MONTERIA':{'lat':8.7575,'lon':-75.8878},
+  'VALLEDUPAR':{'lat':10.4631,'lon':-73.2532},
+  'PASTO':{'lat':1.2136,'lon':-77.2811},
+  'SINCELEJO':{'lat':9.3047,'lon':-75.3978},
+  'POPAYAN':{'lat':2.4448,'lon':-76.6147},
+  'TUNJA':{'lat':5.5353,'lon':-73.3678},
+  'FLORENCIA':{'lat':1.6144,'lon':-75.6063},
+  'RIOHACHA':{'lat':11.5444,'lon':-72.9073},
+  'QUIBDO':{'lat':5.6919,'lon':-76.6583},
+  'ARAUCA':{'lat':7.0897,'lon':-70.7617},
+  'YOPAL':{'lat':5.3378,'lon':-72.3959},
+  'BARRANCABERMEJA':{'lat':7.0652,'lon':-73.8547},
+  'GIRARDOT':{'lat':4.3047,'lon':-74.8018},
+  'DUITAMA':{'lat':5.8254,'lon':-73.0275},
+  'SOGAMOSO':{'lat':5.7173,'lon':-72.9275},
+  'BUENAVENTURA':{'lat':3.8801,'lon':-77.0311},
+  'PALMIRA':{'lat':3.5394,'lon':-76.3036},
+  'BELLO':{'lat':6.3295,'lon':-75.5577},
+  'ITAGUI':{'lat':6.1846,'lon':-75.5996},
+  'ENVIGADO':{'lat':6.1752,'lon':-75.5849},
+  'SOACHA':{'lat':4.5794,'lon':-74.2149},
+  'CHIA':{'lat':4.8607,'lon':-74.0567},
+  'ZIPAQUIRA':{'lat':5.0222,'lon':-74.0061},
+  'FUSAGASUGA':{'lat':4.3462,'lon':-74.3645},
+  'FACATATIVA':{'lat':4.8149,'lon':-74.3549},
+  'MOSQUERA':{'lat':4.7065,'lon':-74.2307},
+  'MADRID':{'lat':4.7344,'lon':-74.2681},
+  'FUNZA':{'lat':4.7149,'lon':-74.2139},
+  'CAJICA':{'lat':4.9175,'lon':-74.0133},
+  'TOCANCIPA':{'lat':4.9669,'lon':-73.9148},
+  'GACHANCIPA':{'lat':4.9937,'lon':-73.8779},
+  'LA CALERA':{'lat':4.7207,'lon':-73.9691},
+  'UBATE':{'lat':5.3153,'lon':-73.8189},
+  'GUADUAS':{'lat':5.0704,'lon':-74.5967},
+  'VILLETA':{'lat':5.0133,'lon':-74.4755},
+  'HONDA':{'lat':5.2022,'lon':-74.7396},
+  'ESPINAL':{'lat':4.1518,'lon':-74.889},
+  'FLANDES':{'lat':4.2872,'lon':-74.8101},
+  'MELGAR':{'lat':4.2024,'lon':-74.6448},
+  'BUGA':{'lat':3.8993,'lon':-76.2992},
+  'TULUA':{'lat':4.0838,'lon':-76.1963},
+  'CARTAGO':{'lat':4.7456,'lon':-75.9117},
+  'DOSQUEBRADAS':{'lat':4.8392,'lon':-75.6636},
+  'SANTA ROSA DE CABAL':{'lat':4.8688,'lon':-75.6222},
+  'RIONEGRO':{'lat':6.1543,'lon':-75.3741},
+  'MARINILLA':{'lat':6.1774,'lon':-75.3378},
+  'APARTADO':{'lat':7.8808,'lon':-76.6265},
+  'TURBO':{'lat':8.0933,'lon':-76.7239},
+  'MONTEBELLO':{'lat':5.9318,'lon':-75.5016},
+  'CAUCASIA':{'lat':7.9879,'lon':-75.1957},
 };
 
 const NOV_COLORS = {
-  'DIRECCIÓN':   '#3b82f6', 'DIRECCION': '#3b82f6',
-  'RECHAZO':     '#ef4444',
-  'OPERATIVO':   '#f59e0b',
-  'PRODUCTO':    '#8b5cf6',
-  'PAGO':        '#10b981',
-  'OTROS':       '#94a3b8',
-  'OTHER':       '#94a3b8',
+  'DIRECCION':'#3b82f6','DIRECCION Y UBICACION':'#3b82f6','DIRECCION Y COBERTURA':'#1d4ed8',
+  'RECHAZO':'#ef4444','RECHAZO DE MERCANCIA':'#dc2626',
+  'OPERATIVO':'#f59e0b','NOVEDAD OPERATIVA':'#d97706',
+  'PRODUCTO':'#8b5cf6','NOVEDAD DE PRODUCTO':'#7c3aed',
+  'PAGO':'#10b981','NOVEDAD DE PAGO':'#059669',
+  'OTROS':'#94a3b8'
 };
 
-// ─── helpers ───────────────────────────────────────────────
+// =============================================================
+//  HELPERS
+// =============================================================
 function fmtNum(n){ if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n||0); }
-function fmtPct(n){ return isNaN(n)?'—':n.toFixed(1)+'%'; }
-function normKey(s){ return (s||'').toString().trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function fmtPct(n){ return isNaN(n)?'--':n.toFixed(1)+'%'; }
+function normKey(s){
+  return (s||'').toString().trim().toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^A-Z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+}
 
 function detectField(cols, candidates){
-  for(const c of candidates){
-    const found = cols.find(col=> normKey(col)===normKey(c));
-    if(found) return found;
+  for(var i=0;i<candidates.length;i++){
+    var n=normKey(candidates[i]);
+    var f=cols.find(function(c){ return normKey(c)===n; });
+    if(f) return f;
   }
-  // fuzzy
-  for(const c of candidates){
-    const n = normKey(c);
-    const found = cols.find(col=> normKey(col).includes(n) || n.includes(normKey(col)));
-    if(found) return found;
+  for(var i=0;i<candidates.length;i++){
+    var n=normKey(candidates[i]);
+    var f=cols.find(function(c){ return normKey(c).includes(n)||n.includes(normKey(c)); });
+    if(f) return f;
   }
   return null;
 }
 
 function detectFields(data){
   if(!data.length) return;
-  const cols = Object.keys(data[0]);
-  FIELDS.estado  = detectField(cols, ['estado','estado_entrega','ESTADO','STATUS','estado_guia','resultado']);
-  FIELDS.ciudad  = detectField(cols, ['ciudad','CIUDAD','municipio','MUNICIPIO','destino','city']);
-  FIELDS.fecha   = detectField(cols, ['fecha','FECHA','fecha_entrega','FECHA_ENTREGA','fecha_proceso','date']);
-  FIELDS.placa   = detectField(cols, ['placa','PLACA','conductor','CONDUCTOR','vehiculo','recurso','RECURSO']);
-  FIELDS.novedad = detectField(cols, ['cluster_novedad','CLUSTER_NOVEDAD','novedad','NOVEDAD','tipo_novedad','cluster']);
-  FIELDS.pe      = detectField(cols, ['pe','PE','tiempo_pe','TIEMPO_PE','promedio_pe','dias_pe','dias','tiempo']);
-  FIELDS.lat     = detectField(cols, ['lat','latitud','latitude','LAT']);
-  FIELDS.lon     = detectField(cols, ['lon','lng','longitud','longitude','LON','LNG']);
+  var cols = Object.keys(data[0]);
+  FIELDS.estado  = detectField(cols,['estado','estado_entrega','estado guia','resultado','status','novedad_estado']);
+  FIELDS.ciudad  = detectField(cols,['ciudad','municipio','destino','ciudad_destino','city']);
+  FIELDS.fecha   = detectField(cols,['fecha','fecha_entrega','fecha_proceso','fecha_registro','date','fecha_novedad']);
+  FIELDS.placa   = detectField(cols,['placa','conductor','vehiculo','recurso','transportador','placa_vehiculo']);
+  FIELDS.novedad = detectField(cols,['cluster_novedad','novedad','tipo_novedad','cluster','novedad_tipo','motivo_novedad']);
+  FIELDS.pe      = detectField(cols,['pe','tiempo_pe','dias_pe','dias','tiempo_proceso','promedio_pe','horas_pe']);
+  FIELDS.lat     = detectField(cols,['lat','latitud','latitude']);
+  FIELDS.lon     = detectField(cols,['lon','lng','longitud','longitude']);
+  console.log('Campos detectados:', FIELDS);
+  console.log('Columnas disponibles:', cols);
 }
 
-function getVal(row, field){ return field ? (row[field]||'').toString().trim() : ''; }
-function isEntregado(row){ const e=normKey(getVal(row,FIELDS.estado)); return e.includes('ENTREG')||e==='EFECTIVO'||e==='EXITOSO'; }
-function isNovedad(row){ return !!getVal(row,FIELDS.novedad); }
-function getCluster(row){ return normKey(getVal(row,FIELDS.novedad))||'OTROS'; }
+function getVal(row,field){ return field?(row[field]||'').toString().trim():''; }
+function isEntregado(row){
+  var e=normKey(getVal(row,FIELDS.estado));
+  return e.includes('ENTREG')||e.includes('EXITOSO')||e.includes('EFECTIVO')||e==='OK';
+}
+function getCluster(row){
+  var v=getVal(row,FIELDS.novedad);
+  if(!v) return '';
+  return normKey(v)||'OTROS';
+}
 function getCiudad(row){ return normKey(getVal(row,FIELDS.ciudad))||'SIN CIUDAD'; }
 function getFecha(row){
-  const raw = getVal(row, FIELDS.fecha);
+  var raw=getVal(row,FIELDS.fecha);
   if(!raw) return null;
-  // try parse
-  const d = new Date(raw.replace(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/,'$3-$2-$1'));
+  // dd/mm/yyyy or dd-mm-yyyy
+  var m=raw.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+  if(m){
+    var y=m[3].length===2?'20'+m[3]:m[3];
+    return new Date(y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'));
+  }
+  var d=new Date(raw);
   return isNaN(d)?null:d;
 }
 
-// ─── state ───────────────────────────────────────────────
-let state = {
-  origin: 'AMBOS', // NC | CROSS | AMBOS
-  ciudad: '',
-  estado: '',
-  fechaIni: null,
-  fechaFin: null,
-  search: '',
-};
+// =============================================================
+//  STATE
+// =============================================================
+var state={origin:'AMBOS',ciudad:'',estado:'',fechaIni:null,fechaFin:null,search:''};
 
 function getFilteredData(){
-  let data = [];
-  if(state.origin==='NC' || state.origin==='AMBOS') data = data.concat(rawNC.map(r=>({...r,_origen:'NC'})));
-  if(state.origin==='CROSS' || state.origin==='AMBOS') data = data.concat(rawCROSS.map(r=>({...r,_origen:'CROSS'})));
-
-  if(state.ciudad) data = data.filter(r=> getCiudad(r)===normKey(state.ciudad));
-  if(state.estado) data = data.filter(r=> normKey(getVal(r,FIELDS.estado))===normKey(state.estado));
-  if(state.fechaIni) data = data.filter(r=>{ const d=getFecha(r); return d&&d>=state.fechaIni; });
-  if(state.fechaFin) data = data.filter(r=>{ const d=getFecha(r); return d&&d<=state.fechaFin; });
+  var data=[];
+  if(state.origin==='NC'||state.origin==='AMBOS') rawNC.forEach(function(r){ data.push(Object.assign({},r,{_origen:'NC'})); });
+  if(state.origin==='CROSS'||state.origin==='AMBOS') rawCROSS.forEach(function(r){ data.push(Object.assign({},r,{_origen:'CROSS'})); });
+  if(state.ciudad) data=data.filter(function(r){ return getCiudad(r)===normKey(state.ciudad); });
+  if(state.estado) data=data.filter(function(r){ return normKey(getVal(r,FIELDS.estado))===normKey(state.estado); });
+  if(state.fechaIni) data=data.filter(function(r){ var d=getFecha(r); return d&&d>=state.fechaIni; });
+  if(state.fechaFin) data=data.filter(function(r){ var d=getFecha(r); return d&&d<=state.fechaFin; });
   return data;
 }
 
 function calcKPIs(data){
-  const total = data.length;
-  const efectivos = data.filter(isEntregado).length;
-  const pct = total>0 ? (efectivos/total)*100 : 0;
-
-  const recursos = new Set(data.map(r=>getVal(r,FIELDS.placa)).filter(Boolean));
-
-  let peVals = data.map(r=>{
-    const v = parseFloat(getVal(r,FIELDS.pe));
-    return isNaN(v)?null:v;
-  }).filter(v=>v!==null);
-  const avgPE = peVals.length ? peVals.reduce((a,b)=>a+b,0)/peVals.length : null;
-
-  const novCount = data.filter(r=> getCluster(r)!=='OTROS' && getVal(r,FIELDS.novedad)).length;
-
-  return { total, efectivos, pct, recursos: recursos.size, avgPE, novCount };
+  var total=data.length;
+  var efectivos=data.filter(isEntregado).length;
+  var pct=total>0?(efectivos/total)*100:0;
+  var recursos=new Set(data.map(function(r){ return getVal(r,FIELDS.placa); }).filter(Boolean));
+  var peVals=data.map(function(r){ var v=parseFloat(getVal(r,FIELDS.pe)); return isNaN(v)?null:v; }).filter(function(v){ return v!==null; });
+  var avgPE=peVals.length?peVals.reduce(function(a,b){ return a+b; },0)/peVals.length:null;
+  var novCount=data.filter(function(r){ return getCluster(r)&&getCluster(r)!=='OTROS'; }).length;
+  return {total:total,efectivos:efectivos,pct:pct,recursos:recursos.size,avgPE:avgPE,novCount:novCount};
 }
 
-// ─── CHARTS helpers ────────────────────────────────────────
+// =============================================================
+//  CHART BUILDERS
+// =============================================================
 function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
-
-const BLUE_PALETTE = ['#005596','#1a78c2','#0097d5','#00bcd4','#4dd0e1','#80deea','#b2ebf2','#e0f7fa'];
-const MULTI_PALETTE = ['#005596','#FFD100','#ef4444','#10b981','#8b5cf6','#f59e0b','#06b6d4','#f97316','#ec4899','#14b8a6'];
 
 function buildTrendChart(canvasId, data){
   destroyChart(canvasId);
-  // group by period (month or day)
-  const groups = {};
-  data.forEach(r=>{
-    const d = getFecha(r);
-    if(!d) return;
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if(!groups[key]) groups[key]={ total:0, ent:0 };
+  var groups={};
+  data.forEach(function(r){
+    var d=getFecha(r); if(!d) return;
+    var key=(d.getFullYear())+'-'+(String(d.getMonth()+1).padStart(2,'0'));
+    if(!groups[key]) groups[key]={total:0,ent:0};
     groups[key].total++;
     if(isEntregado(r)) groups[key].ent++;
   });
-  const keys = Object.keys(groups).sort();
-  if(!keys.length){ return; }
-  const pcts = keys.map(k=> groups[k].total>0?(groups[k].ent/groups[k].total*100):0);
-  const totals = keys.map(k=> groups[k].total);
-
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  charts[canvasId] = new Chart(ctx, {
+  var keys=Object.keys(groups).sort();
+  if(!keys.length) return;
+  var pcts=keys.map(function(k){ return groups[k].total>0?(groups[k].ent/groups[k].total*100):0; });
+  var totals=keys.map(function(k){ return groups[k].total; });
+  var ctx=document.getElementById(canvasId).getContext('2d');
+  charts[canvasId]=new Chart(ctx,{
     type:'line',
     data:{
-      labels: keys,
+      labels:keys,
       datasets:[
-        {
-          label:'% Efectividad',
-          data: pcts,
-          borderColor:'#005596',
-          backgroundColor:'rgba(0,85,150,.08)',
-          fill:true,
-          tension:.4,
-          pointBackgroundColor:'#005596',
-          pointRadius:4,
-          yAxisID:'y',
-        },
-        {
-          label:'Guías',
-          data: totals,
-          borderColor:'#FFD100',
-          backgroundColor:'rgba(255,209,0,.08)',
-          fill:true,
-          tension:.4,
-          pointBackgroundColor:'#FFD100',
-          pointRadius:4,
-          yAxisID:'y1',
-          borderDash:[4,3],
-        }
+        {label:'% Efectividad',data:pcts,borderColor:'#005596',backgroundColor:'rgba(0,85,150,.08)',fill:true,tension:.4,pointBackgroundColor:'#005596',pointRadius:4,yAxisID:'y'},
+        {label:'Guias',data:totals,borderColor:'#FFD100',backgroundColor:'rgba(255,209,0,.08)',fill:true,tension:.4,pointBackgroundColor:'#FFD100',pointRadius:4,yAxisID:'y1',borderDash:[4,3]}
       ]
     },
-    options:{
-      responsive:true,
-      plugins:{ legend:{ position:'top', labels:{ font:{ family:'DM Sans', size:11 }, boxWidth:10 } } },
-      scales:{
-        y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%', font:{family:'DM Mono',size:10} }, grid:{color:'#f1f5f9'} },
-        y1:{ position:'right', beginAtZero:true, ticks:{ font:{family:'DM Mono',size:10} }, grid:{display:false} },
-        x:{ ticks:{ font:{family:'DM Sans',size:10} }, grid:{display:false} }
-      }
-    }
+    options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+      scales:{y:{beginAtZero:true,max:100,ticks:{callback:function(v){return v+'%';},font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},
+              y1:{position:'right',beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{display:false}},
+              x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}}}
   });
 }
 
-function buildCityChart(canvasId, data, topN=8){
+function buildCityChart(canvasId, data, topN){
+  topN=topN||8;
   destroyChart(canvasId);
-  const counts = {};
-  data.forEach(r=>{ const c=getCiudad(r); counts[c]=(counts[c]||0)+1; });
+  var counts={};
+  data.forEach(function(r){ var c=getCiudad(r); counts[c]=(counts[c]||0)+1; });
   delete counts['SIN CIUDAD'];
-  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,topN);
+  var sorted=Object.entries(counts).sort(function(a,b){ return b[1]-a[1]; }).slice(0,topN);
   if(!sorted.length) return;
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  charts[canvasId] = new Chart(ctx,{
+  var palette=['#005596','#1a78c2','#0097d5','#00bcd4','#4dd0e1','#80deea','#b2ebf2','#e0f7fa','#FFD100','#fde68a'];
+  var ctx=document.getElementById(canvasId).getContext('2d');
+  charts[canvasId]=new Chart(ctx,{
     type:'bar',
-    data:{
-      labels: sorted.map(([c])=>c.slice(0,14)),
-      datasets:[{ label:'Guías', data:sorted.map(([,v])=>v), backgroundColor:BLUE_PALETTE, borderRadius:6, borderSkipped:false }]
-    },
-    options:{
-      responsive:true, indexAxis:'y',
-      plugins:{ legend:{display:false} },
-      scales:{
-        x:{ beginAtZero:true, ticks:{font:{family:'DM Mono',size:10}}, grid:{color:'#f1f5f9'} },
-        y:{ ticks:{font:{family:'DM Sans',size:11}}, grid:{display:false} }
-      }
-    }
+    data:{labels:sorted.map(function(x){ return x[0].slice(0,16); }),
+          datasets:[{label:'Guias',data:sorted.map(function(x){ return x[1]; }),backgroundColor:palette,borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},
+              y:{ticks:{font:{family:'DM Sans',size:11}},grid:{display:false}}}}
   });
 }
 
 function buildMixChart(canvasId, data){
   destroyChart(canvasId);
-  const nc = data.filter(r=>r._origen==='NC').length;
-  const cross = data.filter(r=>r._origen==='CROSS').length;
-  if(nc===0&&cross===0) return;
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  charts[canvasId] = new Chart(ctx,{
+  var nc=data.filter(function(r){ return r._origen==='NC'; }).length;
+  var cross=data.filter(function(r){ return r._origen==='CROSS'; }).length;
+  if(!nc&&!cross) return;
+  var ctx=document.getElementById(canvasId).getContext('2d');
+  charts[canvasId]=new Chart(ctx,{
     type:'doughnut',
-    data:{
-      labels:['No Centralizado','Crossdocking'],
-      datasets:[{ data:[nc,cross], backgroundColor:['#005596','#FFD100'], borderWidth:0, hoverOffset:6 }]
-    },
-    options:{
-      responsive:true, cutout:'65%',
-      plugins:{ legend:{ position:'bottom', labels:{ font:{family:'DM Sans',size:11}, boxWidth:10 } } }
-    }
+    data:{labels:['No Centralizado','Crossdocking'],
+          datasets:[{data:[nc,cross],backgroundColor:['#005596','#FFD100'],borderWidth:0,hoverOffset:6}]},
+    options:{responsive:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}}}
   });
 }
 
 function buildEstadoChart(canvasId, data){
   destroyChart(canvasId);
-  const counts = {};
-  data.forEach(r=>{ const e=normKey(getVal(r,FIELDS.estado))||'SIN ESTADO'; counts[e]=(counts[e]||0)+1; });
-  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  var counts={};
+  data.forEach(function(r){ var e=normKey(getVal(r,FIELDS.estado))||'SIN ESTADO'; counts[e]=(counts[e]||0)+1; });
+  var sorted=Object.entries(counts).sort(function(a,b){ return b[1]-a[1]; });
   if(!sorted.length) return;
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  charts[canvasId] = new Chart(ctx,{
+  var ctx=document.getElementById(canvasId).getContext('2d');
+  charts[canvasId]=new Chart(ctx,{
     type:'bar',
-    data:{
-      labels: sorted.map(([k])=>k.slice(0,18)),
-      datasets:[{ label:'Guías', data:sorted.map(([,v])=>v), backgroundColor: sorted.map(([k])=> k.includes('ENTREG')||k.includes('EFECTIV')?'#10b981': k.includes('RECHAZ')||k.includes('DEVOLUC')?'#ef4444':'#94a3b8'), borderRadius:5, borderSkipped:false }]
-    },
-    options:{
-      responsive:true, indexAxis:'y',
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{ beginAtZero:true, ticks:{font:{family:'DM Mono',size:10}}, grid:{color:'#f1f5f9'} },
-        y:{ ticks:{font:{family:'DM Sans',size:10}}, grid:{display:false} }
-      }
-    }
+    data:{labels:sorted.map(function(x){ return x[0].slice(0,20); }),
+          datasets:[{label:'Guias',data:sorted.map(function(x){ return x[1]; }),
+            backgroundColor:sorted.map(function(x){
+              var k=x[0];
+              return (k.includes('ENTREG')||k.includes('EFECTIV'))?'#10b981':(k.includes('RECHAZ')||k.includes('DEVOL'))?'#ef4444':'#94a3b8';
+            }),borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},
+              y:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}}}
   });
 }
 
 function buildNovDonut(data){
   destroyChart('nov-donut');
-  const counts = {};
-  data.filter(r=>getVal(r,FIELDS.novedad)).forEach(r=>{ const c=getCluster(r); counts[c]=(counts[c]||0)+1; });
-  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-  if(!entries.length){ document.getElementById('nov-donut').parentElement.innerHTML='<div class="no-data-msg">Sin datos de novedades</div>'; return; }
-  const ctx = document.getElementById('nov-donut').getContext('2d');
-  const colors = entries.map(([k])=> NOV_COLORS[k]||NOV_COLORS['OTHER']);
-  charts['nov-donut'] = new Chart(ctx,{
-    type:'doughnut',
-    data:{
-      labels: entries.map(([k])=>k),
-      datasets:[{ data:entries.map(([,v])=>v), backgroundColor:colors, borderWidth:0, hoverOffset:8 }]
-    },
-    options:{
-      responsive:true, cutout:'60%',
-      plugins:{ legend:{ position:'bottom', labels:{ font:{family:'DM Sans',size:11}, boxWidth:10 } } }
-    }
+  var counts={};
+  data.filter(function(r){ return getCluster(r); }).forEach(function(r){
+    var c=getCluster(r); if(!c) return;
+    counts[c]=(counts[c]||0)+1;
   });
-  // List
-  const total = entries.reduce((s,[,v])=>s+v,0);
-  const listEl = document.getElementById('nov-list');
-  listEl.innerHTML = entries.map(([k,v])=>{
-    const pct = (v/total*100).toFixed(1);
-    const color = NOV_COLORS[k]||NOV_COLORS['OTHER'];
-    return `
-    <div class="nov-row">
-      <div class="nov-dot" style="background:${color}"></div>
-      <div class="nov-label">${k}</div>
-      <div class="nov-count">${fmtNum(v)}</div>
-      <div class="nov-pct">${pct}%</div>
-    </div>
-    <div class="nov-bar-bg"><div class="nov-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-    `;
+  var entries=Object.entries(counts).sort(function(a,b){ return b[1]-a[1]; });
+  if(!entries.length){
+    var el=document.getElementById('nov-donut');
+    if(el) el.parentElement.innerHTML='<div class="no-data-msg">Sin datos de novedades</div>';
+    return;
+  }
+  var ctx=document.getElementById('nov-donut').getContext('2d');
+  var colors=entries.map(function(e){ return NOV_COLORS[e[0]]||'#94a3b8'; });
+  charts['nov-donut']=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels:entries.map(function(e){ return e[0]; }),
+          datasets:[{data:entries.map(function(e){ return e[1]; }),backgroundColor:colors,borderWidth:0,hoverOffset:8}]},
+    options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}}}
+  });
+  var total=entries.reduce(function(s,e){ return s+e[1]; },0);
+  var listEl=document.getElementById('nov-list');
+  if(listEl) listEl.innerHTML=entries.map(function(e){
+    var k=e[0],v=e[1];
+    var pct=(v/total*100).toFixed(1);
+    var color=NOV_COLORS[k]||'#94a3b8';
+    return '<div class="nov-row"><div class="nov-dot" style="background:'+color+'"></div><div class="nov-label">'+k+'</div><div class="nov-count">'+fmtNum(v)+'</div><div class="nov-pct">'+pct+'%</div></div><div class="nov-bar-bg"><div class="nov-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div>';
   }).join('');
 }
 
 function buildNovCiudadChart(data){
   destroyChart('nov-ciudad-chart');
-  const counts = {};
-  data.filter(r=>getVal(r,FIELDS.novedad)).forEach(r=>{ const c=getCiudad(r); counts[c]=(counts[c]||0)+1; });
+  var counts={};
+  data.filter(function(r){ return getCluster(r); }).forEach(function(r){
+    var c=getCiudad(r); counts[c]=(counts[c]||0)+1;
+  });
   delete counts['SIN CIUDAD'];
-  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  var sorted=Object.entries(counts).sort(function(a,b){ return b[1]-a[1]; }).slice(0,10);
   if(!sorted.length) return;
-  const ctx = document.getElementById('nov-ciudad-chart').getContext('2d');
-  charts['nov-ciudad-chart'] = new Chart(ctx,{
+  var ctx=document.getElementById('nov-ciudad-chart').getContext('2d');
+  charts['nov-ciudad-chart']=new Chart(ctx,{
     type:'bar',
-    data:{
-      labels: sorted.map(([c])=>c.slice(0,14)),
-      datasets:[{ label:'Novedades', data:sorted.map(([,v])=>v), backgroundColor:'#ef4444', borderRadius:5 }]
-    },
-    options:{
-      responsive:true,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{ ticks:{font:{family:'DM Sans',size:10}}, grid:{display:false} },
-        y:{ beginAtZero:true, ticks:{font:{family:'DM Mono',size:10}}, grid:{color:'#f1f5f9'} }
-      }
-    }
+    data:{labels:sorted.map(function(x){ return x[0].slice(0,14); }),
+          datasets:[{label:'Novedades',data:sorted.map(function(x){ return x[1]; }),backgroundColor:'#ef4444',borderRadius:5}]},
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}},
+              y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
   });
 }
 
-// ─── MAP ────────────────────────────────────────────────────
+// =============================================================
+//  MAP
+// =============================================================
+var mapMarkers=[];
 function buildMap(data){
   if(!mapInstance){
-    mapInstance = L.map('map').setView([4.5709, -74.2973], 6);
+    mapInstance=L.map('map').setView([4.5709,-74.2973],6);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
-      attribution:'© <a href="https://carto.com/">CARTO</a>',
-      subdomains:'abcd', maxZoom:19
+      attribution:'(c) CARTO',subdomains:'abcd',maxZoom:19
     }).addTo(mapInstance);
   }
-  if(heatLayer){ mapInstance.removeLayer(heatLayer); heatLayer=null; }
+  mapMarkers.forEach(function(m){ mapInstance.removeLayer(m); });
+  mapMarkers=[];
 
-  // aggregate by city
-  const cityCounts = {};
-  const cityEnt = {};
-  data.forEach(r=>{
-    const c = getCiudad(r);
-    cityCounts[c] = (cityCounts[c]||0)+1;
+  var cityCounts={}, cityEnt={};
+  data.forEach(function(r){
+    var c=getCiudad(r);
+    cityCounts[c]=(cityCounts[c]||0)+1;
     if(isEntregado(r)) cityEnt[c]=(cityEnt[c]||0)+1;
   });
 
-  const circles = [];
-  Object.entries(cityCounts).forEach(([city,cnt])=>{
-    const coords = CITY_COORDS[city];
+  Object.entries(cityCounts).forEach(function(entry){
+    var city=entry[0], cnt=entry[1];
+    var coords=CITY_COORDS[city];
     if(!coords) return;
-    const eff = cityEnt[city]?((cityEnt[city]/cnt)*100).toFixed(1):0;
-    const radius = Math.max(8000, Math.min(80000, cnt*200));
-    const color = eff>=90?'#10b981': eff>=70?'#f59e0b': '#ef4444';
-    const circle = L.circle([coords.lat, coords.lon],{
-      radius,
-      fillColor: color,
-      fillOpacity: 0.45,
-      color: color,
-      weight: 1,
-      opacity: 0.7
-    }).addTo(mapInstance);
-    circle.bindPopup(`
-      <div style="font-family:'DM Sans',sans-serif;min-width:140px">
-        <b style="font-size:13px;color:#005596">${city}</b><br>
-        <span style="font-size:12px">📦 ${cnt} guías</span><br>
-        <span style="font-size:12px">✅ ${eff}% efectividad</span>
-      </div>
-    `);
-    circles.push(circle);
+    var eff=cityEnt[city]?((cityEnt[city]/cnt)*100).toFixed(1):0;
+    var radius=Math.max(8000,Math.min(80000,cnt*250));
+    var color=eff>=90?'#10b981':eff>=70?'#f59e0b':'#ef4444';
+    var circle=L.circle([coords.lat,coords.lon],{radius:radius,fillColor:color,fillOpacity:.45,color:color,weight:1,opacity:.7}).addTo(mapInstance);
+    circle.bindPopup('<div style="font-family:DM Sans,sans-serif;min-width:140px"><b style="font-size:13px;color:#005596">'+city+'</b><br><span style="font-size:12px">Guias: '+cnt+'</span><br><span style="font-size:12px">Efectividad: '+eff+'%</span></div>');
+    mapMarkers.push(circle);
   });
 
-  // map table
-  const tbody = document.getElementById('map-table-body');
-  const sorted = Object.entries(cityCounts).sort((a,b)=>b[1]-a[1]);
-  tbody.innerHTML = sorted.map(([city,cnt])=>{
-    const eff = cityEnt[city]?((cityEnt[city]/cnt)*100):0;
-    const semClass = eff>=90?'sem-green': eff>=70?'sem-yellow':'sem-red';
-    const novCount = data.filter(r=>getCiudad(r)===city&&getVal(r,FIELDS.novedad)).length;
-    return `<tr>
-      <td>${city}</td>
-      <td style="font-family:'DM Mono',monospace">${cnt}</td>
-      <td style="font-family:'DM Mono',monospace">${cityEnt[city]||0}</td>
-      <td><span class="semaphore ${semClass}"></span> ${eff.toFixed(1)}%</td>
-      <td style="font-family:'DM Mono',monospace">${novCount}</td>
-    </tr>`;
+  var tbody=document.getElementById('map-table-body');
+  if(!tbody) return;
+  var sorted=Object.entries(cityCounts).sort(function(a,b){ return b[1]-a[1]; });
+  tbody.innerHTML=sorted.map(function(entry){
+    var city=entry[0],cnt=entry[1];
+    var eff=cityEnt[city]?((cityEnt[city]/cnt)*100):0;
+    var semClass=eff>=90?'sem-green':eff>=70?'sem-yellow':'sem-red';
+    var novCount=data.filter(function(r){ return getCiudad(r)===city&&getCluster(r); }).length;
+    return '<tr><td>'+city+'</td><td style="font-family:DM Mono,monospace">'+cnt+'</td><td style="font-family:DM Mono,monospace">'+(cityEnt[city]||0)+'</td><td><span class="semaphore '+semClass+'"></span> '+eff.toFixed(1)+'%</td><td style="font-family:DM Mono,monospace">'+novCount+'</td></tr>';
   }).join('');
 }
 
-// ─── DETAIL TABLE ────────────────────────────────────────────
-const DETAIL_COLS_PRIORITY = ['estado','ciudad','fecha','placa','conductor','cluster_novedad','pe'];
-
+// =============================================================
+//  DETAIL TABLE
+// =============================================================
 function buildDetailTable(data){
-  detailData = data;
+  detailData=data.slice();
   if(state.search){
-    const q = normKey(state.search);
-    detailData = detailData.filter(r=> Object.values(r).some(v=> normKey(String(v)).includes(q)));
+    var q=normKey(state.search);
+    detailData=detailData.filter(function(r){ return Object.values(r).some(function(v){ return normKey(String(v)).includes(q); }); });
   }
-  const total = detailData.length;
-  document.getElementById('detail-count').textContent = `${total.toLocaleString('es-CO')} registros`;
-  currentPage = 1;
+  document.getElementById('detail-count').textContent=detailData.length.toLocaleString('es-CO')+' registros';
+  currentPage=1;
   renderDetailPage();
 }
 
 function renderDetailPage(){
-  const start = (currentPage-1)*PAGE_SIZE;
-  const page = detailData.slice(start, start+PAGE_SIZE);
+  var start=(currentPage-1)*PAGE_SIZE;
+  var page=detailData.slice(start,start+PAGE_SIZE);
   if(!page.length){
     document.getElementById('detail-thead').innerHTML='';
     document.getElementById('detail-tbody').innerHTML='<tr><td colspan="10" class="no-data-msg">Sin datos</td></tr>';
     document.getElementById('pagination').innerHTML='';
     return;
   }
-
-  // Determine columns (up to 10)
-  const allCols = Object.keys(page[0]).filter(c=>c!=='_origen');
-  // prioritise useful columns
-  let cols = allCols.slice(0,10);
-
-  // Header
-  document.getElementById('detail-thead').innerHTML = `<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
-
-  // Body
-  document.getElementById('detail-tbody').innerHTML = page.map(row=>{
-    const isEnt = isEntregado(row);
-    const efPct = FIELDS.estado ? (isEnt?'✅':'❌') : '';
-    return `<tr>${cols.map(c=>{
-      let val = (row[c]||'').toString().trim();
+  var allCols=Object.keys(page[0]).filter(function(c){ return c!=='_origen'; }).slice(0,10);
+  document.getElementById('detail-thead').innerHTML='<tr>'+allCols.map(function(c){ return '<th>'+c+'</th>'; }).join('')+'</tr>';
+  document.getElementById('detail-tbody').innerHTML=page.map(function(row){
+    return '<tr>'+allCols.map(function(c){
+      var val=(row[c]||'').toString().trim();
       if(c===FIELDS.estado){
-        const eff = isEnt;
-        return `<td><span class="badge ${eff?'badge-green':'badge-red'}">${val||'—'}</span></td>`;
+        var eff=isEntregado(row);
+        return '<td><span class="badge '+(eff?'badge-green':'badge-red')+'">'+( val||'--')+'</span></td>';
       }
-      return `<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${val}">${val||'—'}</td>`;
-    }).join('')}</tr>`;
+      return '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+val+'">'+( val||'--')+'</td>';
+    }).join('')+'</tr>';
   }).join('');
 
-  // Pagination
-  const totalPages = Math.ceil(detailData.length/PAGE_SIZE);
-  let pages = [];
-  for(let i=1;i<=totalPages;i++){
-    if(i===1||i===totalPages||Math.abs(i-currentPage)<=2) pages.push(i);
-    else if(Math.abs(i-currentPage)===3) pages.push('…');
+  var totalPages=Math.ceil(detailData.length/PAGE_SIZE);
+  var paginEl=document.getElementById('pagination');
+  var html='';
+  for(var i=1;i<=Math.min(totalPages,10);i++){
+    html+='<button class="page-btn '+(i===currentPage?'active':'')+'" data-p="'+i+'">'+i+'</button>';
   }
-  pages = [...new Set(pages)];
-  document.getElementById('pagination').innerHTML = pages.map(p=>
-    p==='…'?`<span style="color:var(--col-muted);padding:0 4px">…</span>`:
-    `<button class="page-btn ${p===currentPage?'active':''}" data-p="${p}">${p}</button>`
-  ).join('');
-  document.querySelectorAll('.page-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{ currentPage=+btn.dataset.p; renderDetailPage(); });
+  if(totalPages>10) html+='<span style="color:var(--col-muted);padding:0 4px">...</span><button class="page-btn '+(totalPages===currentPage?'active':'')+'" data-p="'+totalPages+'">'+totalPages+'</button>';
+  paginEl.innerHTML=html;
+  document.querySelectorAll('.page-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){ currentPage=+btn.dataset.p; renderDetailPage(); });
   });
 }
 
-// ─── UPDATE ALL ────────────────────────────────────────────
+// =============================================================
+//  UPDATE ALL COMPONENTS
+// =============================================================
 function updateDashboard(){
-  const data = getFilteredData();
-  const kpis = calcKPIs(data);
+  var data=getFilteredData();
+  var kpis=calcKPIs(data);
+  document.getElementById('total-registros').textContent=data.length.toLocaleString('es-CO')+' registros';
+  document.getElementById('last-update').textContent=new Date().toLocaleTimeString('es-CO');
 
-  // update record counter
-  document.getElementById('total-registros').textContent = `${data.length.toLocaleString('es-CO')} registros`;
-  document.getElementById('last-update').textContent = new Date().toLocaleTimeString('es-CO');
+  function setKPI(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
+  var peStr=kpis.avgPE!==null?kpis.avgPE.toFixed(1):'--';
 
-  // KPIs
-  const setKPI=(id,val)=>{ const el=document.getElementById(id); if(el) el.textContent=val; };
-  const peStr = kpis.avgPE!==null ? kpis.avgPE.toFixed(1) : '—';
-
-  ['h','g'].forEach(p=>{
-    setKPI(`${p}-kpi-total`, fmtNum(kpis.total));
-    setKPI(`${p}-kpi-efectivos`, fmtNum(kpis.efectivos));
-    setKPI(`${p}-kpi-efect-pct`, fmtPct(kpis.pct));
-    setKPI(`${p}-kpi-prom-pe`, peStr);
-    setKPI(`${p}-kpi-recursos`, fmtNum(kpis.recursos));
-    setKPI(`${p}-kpi-novedades`, fmtNum(kpis.novCount));
+  ['h','g'].forEach(function(p){
+    setKPI(p+'-kpi-total',fmtNum(kpis.total));
+    setKPI(p+'-kpi-efectivos',fmtNum(kpis.efectivos));
+    setKPI(p+'-kpi-efect-pct',fmtPct(kpis.pct));
+    setKPI(p+'-kpi-prom-pe',peStr);
+    setKPI(p+'-kpi-recursos',fmtNum(kpis.recursos));
+    setKPI(p+'-kpi-novedades',fmtNum(kpis.novCount));
   });
-  setKPI('hs-guias', fmtNum(kpis.total));
-  setKPI('hs-efectividad', fmtPct(kpis.pct));
-  setKPI('hs-recursos', fmtNum(kpis.recursos));
+  setKPI('hs-guias',fmtNum(kpis.total));
+  setKPI('hs-efectividad',fmtPct(kpis.pct));
+  setKPI('hs-recursos',fmtNum(kpis.recursos));
 
-  // Charts
-  buildTrendChart('home-trend-chart', data);
-  buildTrendChart('trend-chart', data);
-  buildCityChart('home-city-chart', data, 8);
-  buildCityChart('city-chart', data, 10);
-  buildMixChart('mix-chart', data);
-  buildEstadoChart('estado-chart', data);
+  buildTrendChart('home-trend-chart',data);
+  buildTrendChart('trend-chart',data);
+  buildCityChart('home-city-chart',data,8);
+  buildCityChart('city-chart',data,10);
+  buildMixChart('mix-chart',data);
+  buildEstadoChart('estado-chart',data);
   buildNovDonut(data);
   buildNovCiudadChart(data);
   buildMap(data);
   buildDetailTable(data);
 }
 
-// ─── POPULATE FILTERS ──────────────────────────────────────
+// =============================================================
+//  POPULATE FILTERS
+// =============================================================
 function populateFilters(data){
-  const cities = [...new Set(data.map(r=>getCiudad(r)).filter(c=>c&&c!=='SIN CIUDAD'))].sort();
-  const estados = [...new Set(data.map(r=>normKey(getVal(r,FIELDS.estado))).filter(Boolean))].sort();
-
-  const ciSel = document.getElementById('filter-ciudad');
-  ciSel.innerHTML = '<option value="">Todas las ciudades</option>' + cities.map(c=>`<option value="${c}">${c}</option>`).join('');
-
-  const esSel = document.getElementById('filter-estado');
-  esSel.innerHTML = '<option value="">Todos los estados</option>' + estados.map(e=>`<option value="${e}">${e}</option>`).join('');
+  var cities=[...new Set(data.map(getCiudad).filter(function(c){ return c&&c!=='SIN CIUDAD'; }))].sort();
+  var estados=[...new Set(data.map(function(r){ return normKey(getVal(r,FIELDS.estado)); }).filter(Boolean))].sort();
+  document.getElementById('filter-ciudad').innerHTML='<option value="">Todas las ciudades</option>'+cities.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
+  document.getElementById('filter-estado').innerHTML='<option value="">Todos los estados</option>'+estados.map(function(e){ return '<option value="'+e+'">'+e+'</option>'; }).join('');
 }
 
-// ─── FETCH DATA ────────────────────────────────────────────
-function updateProgress(pct){ document.getElementById('progress-bar').style.width=pct+'%'; }
+// =============================================================
+//  DATA FETCHING — BROWSER-SIDE, MULTI-PROXY, MULTI-GID
+// =============================================================
+function updateProgress(pct){ var el=document.getElementById('progress-bar'); if(el) el.style.width=pct+'%'; }
+function setLoaderMsg(msg){
+  var el=document.querySelector('.loader-text'); if(el) el.textContent='Cargando datos logisticos...';
+  var det=document.getElementById('loader-detail'); if(det) det.textContent=msg;
+}
 
-async function fetchCSV(url){ 
-  return new Promise((resolve)=>{
-    Papa.parse(url,{
-      download:true,
-      header:true,
-      skipEmptyLines:true,
-      complete:(r)=>resolve(r.data),
-      error:()=>resolve([]),
+function parseCSVText(text){
+  if(!text||text.trim().length<10) return [];
+  if(text.trim().startsWith('<')) return [];   // HTML error page
+  var result=Papa.parse(text,{header:true,skipEmptyLines:true,dynamicTyping:false});
+  return result.data||[];
+}
+
+function fetchText(url){
+  return fetch(url,{mode:'cors',credentials:'omit'})
+    .then(function(res){
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      return res.text();
     });
-  });
+}
+
+function fetchWithProxies(rawUrl){
+  var i=0;
+  function tryNext(){
+    if(i>=PROXY_FNS.length) return Promise.resolve([]);
+    var proxied=PROXY_FNS[i](rawUrl);
+    i++;
+    return fetchText(proxied)
+      .then(function(text){
+        var rows=parseCSVText(text);
+        if(rows.length>0){ console.log('OK proxy '+(i-1)+' -> '+rows.length+' rows for '+rawUrl.slice(-30)); return rows; }
+        return tryNext();
+      })
+      .catch(function(e){ console.warn('Proxy '+(i-1)+' failed:',e.message); return tryNext(); });
+  }
+  return tryNext();
+}
+
+// Fingerprint a dataset (first row values joined) to detect duplicate sheet
+function fingerprint(rows){
+  if(!rows.length) return '';
+  return Object.values(rows[0]).slice(0,5).join('|');
+}
+
+function discoverCrossSheet(ncFingerprint){
+  var idx=0;
+  function tryNext(){
+    if(idx>=CROSS_GIDS.length) return Promise.resolve([]);
+    var gid=CROSS_GIDS[idx]; idx++;
+    var url=BASE_PUB+'?gid='+gid+'&output=csv';
+    setLoaderMsg('Buscando hoja CROSS (gid='+gid+')...');
+    return fetchWithProxies(url).then(function(rows){
+      if(rows.length>0){
+        var fp=fingerprint(rows);
+        if(fp!==ncFingerprint){
+          console.log('CROSS sheet encontrada! gid='+gid+', rows='+rows.length);
+          return rows;
+        } else {
+          console.log('gid='+gid+' es igual a NC, continuo...');
+          return tryNext();
+        }
+      }
+      return tryNext();
+    }).catch(function(){ return tryNext(); });
+  }
+  return tryNext();
+}
+
+function showErrorScreen(){
+  document.getElementById('loader').innerHTML=
+    '<div style="text-align:center;padding:32px 24px;font-family:DM Sans,sans-serif;max-width:500px">'+
+    '<div style="font-size:48px;margin-bottom:12px">🔒</div>'+
+    '<div style="font-size:17px;font-weight:700;color:#1e293b;margin-bottom:8px">No se pudieron cargar los datos</div>'+
+    '<div style="font-size:13px;color:#64748b;margin-bottom:20px;line-height:1.7">'+
+    'Para que el dashboard lea la hoja, el Google Sheet debe estar <b>publicado en la web</b>.<br>'+
+    '<b>Archivo → Compartir → Publicar en la web → seleccionar hoja → CSV → Publicar</b>'+
+    '</div>'+
+    '<div style="margin-bottom:14px;text-align:left">'+
+    '<label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">URL CSV hoja DATA NC</label>'+
+    '<input id="manual-nc" value="'+URL_NC+'" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:DM Sans,sans-serif"/>'+
+    '</div>'+
+    '<div style="margin-bottom:20px;text-align:left">'+
+    '<label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">URL CSV hoja DATA CROSS</label>'+
+    '<input id="manual-cross" value="'+URL_CROSS+'" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:DM Sans,sans-serif"/>'+
+    '<div style="font-size:11px;color:#94a3b8;margin-top:4px">Abre la hoja CROSS en Sheets, ve a Archivo > Publicar en la web, selecciona esa hoja y copia la URL CSV</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;justify-content:center">'+
+    '<button onclick="retryManual()" style="padding:10px 24px;background:#005596;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif">Reintentar</button>'+
+    '<button onclick="loadOnlyNC()" style="padding:10px 20px;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:DM Sans,sans-serif">Solo cargar NC</button>'+
+    '</div></div>';
 }
 
 async function loadData(){
+  updateProgress(5);
+  setLoaderMsg('Conectando con Google Sheets...');
+
+  // ── Hoja NC ──────────────────────────────────────────────
   updateProgress(10);
-  const [ncData, crossData] = await Promise.all([
-    fetchCSV(SHEET_NC),
-    fetchCSV(SHEET_CROSS),
-  ]);
-  updateProgress(70);
+  setLoaderMsg('Cargando hoja DATA NC...');
+  rawNC = await fetchWithProxies(URL_NC);
+  updateProgress(45);
+  console.log('NC rows:', rawNC.length);
 
-  rawNC = ncData;
-  rawCROSS = crossData;
+  // ── Hoja CROSS (GID 480391335 confirmado) ────────────────
+  setLoaderMsg('Cargando hoja DATA CROSS...');
+  rawCROSS = await fetchWithProxies(URL_CROSS);
+  updateProgress(75);
+  console.log('CROSS rows:', rawCROSS.length);
 
-  const allData = [...rawNC, ...rawCROSS];
-  if(allData.length===0){
-    document.getElementById('loader').innerHTML=`
-      <div style="text-align:center;padding:40px;font-family:'DM Sans',sans-serif">
-        <div style="font-size:48px;margin-bottom:16px">⚠️</div>
-        <div style="font-size:16px;font-weight:600;color:#1e293b">No se pudieron cargar los datos</div>
-        <div style="font-size:13px;color:#64748b;margin-top:8px">Verifica que el Google Sheet sea público y la URL correcta</div>
-        <button onclick="document.getElementById('loader').style.display='none'" style="margin-top:20px;padding:10px 24px;background:#005596;color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer">Continuar sin datos</button>
-      </div>`;
+  if(rawNC.length===0 && rawCROSS.length===0){
+    showErrorScreen();
     return;
   }
 
+  // Si CROSS trae los mismos datos que NC (mismo fingerprint) avisa en consola
+  if(rawNC.length>0 && rawCROSS.length>0 && fingerprint(rawNC)===fingerprint(rawCROSS)){
+    console.warn('CROSS y NC tienen el mismo fingerprint — posible misma hoja');
+  }
+
+  var allData=[...rawNC,...rawCROSS];
+  setLoaderMsg('Procesando '+allData.length.toLocaleString('es-CO')+' registros...');
   detectFields(allData);
-  updateProgress(85);
+  updateProgress(88);
   populateFilters(allData);
-  updateProgress(95);
+  updateProgress(96);
   updateDashboard();
   updateProgress(100);
-
-  setTimeout(()=>{ document.getElementById('loader').style.display='none'; },300);
+  setTimeout(function(){ document.getElementById('loader').style.display='none'; },400);
 }
 
-// ─── EVENT LISTENERS ───────────────────────────────────────
-// Tabs
-document.querySelectorAll('.nav-tab').forEach(tab=>{
-  tab.addEventListener('click',()=>{
-    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
+async function loadOnlyNC(){
+  if(rawNC.length===0){ showErrorScreen(); return; }
+  document.getElementById('loader').innerHTML=
+    '<div style="font-family:DM Sans,sans-serif;display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px">'+
+    '<div class="spinner"></div><div class="loader-text">Procesando datos NC...</div>'+
+    '<div id="progress-bar-wrap" style="width:200px;height:4px;background:#e8f1f9;border-radius:99px;overflow:hidden">'+
+    '<div id="progress-bar" style="height:100%;background:#005596;border-radius:99px;width:60%;transition:width .3s"></div></div></div>';
+  rawCROSS=[];
+  var allData=[...rawNC];
+  detectFields(allData);
+  populateFilters(allData);
+  updateDashboard();
+  document.getElementById('loader').style.display='none';
+}
+
+async function retryManual(){
+  var ncUrl=(document.getElementById('manual-nc')||{}).value||'';
+  var crUrl=(document.getElementById('manual-cross')||{}).value||'';
+  document.getElementById('loader').innerHTML=
+    '<div style="font-family:DM Sans,sans-serif;display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px">'+
+    '<div class="spinner"></div><div class="loader-text">Reintentando conexion...</div>'+
+    '<div id="loader-detail" style="font-size:11px;color:#94a3b8;font-family:DM Mono,monospace"></div>'+
+    '<div id="progress-bar-wrap" style="width:200px;height:4px;background:#e8f1f9;border-radius:99px;overflow:hidden">'+
+    '<div id="progress-bar" style="height:100%;background:#005596;border-radius:99px;width:0;transition:width .3s"></div></div></div>';
+
+  if(ncUrl){ rawNC=await fetchWithProxies(ncUrl); }
+  if(crUrl){ rawCROSS=await fetchWithProxies(crUrl); }
+
+  var all=[...rawNC,...rawCROSS];
+  if(!all.length){ showErrorScreen(); return; }
+  detectFields(all);
+  populateFilters(all);
+  updateDashboard();
+  document.getElementById('loader').style.display='none';
+}
+
+// =============================================================
+//  EVENT LISTENERS
+// =============================================================
+document.querySelectorAll('.nav-tab').forEach(function(tab){
+  tab.addEventListener('click',function(){
+    document.querySelectorAll('.nav-tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('.page-section').forEach(function(s){ s.classList.remove('active'); });
     tab.classList.add('active');
     document.getElementById('page-'+tab.dataset.tab).classList.add('active');
-    if(tab.dataset.tab==='mapa'){ setTimeout(()=>mapInstance&&mapInstance.invalidateSize(),200); }
+    if(tab.dataset.tab==='mapa'){ setTimeout(function(){ if(mapInstance) mapInstance.invalidateSize(); },200); }
   });
 });
 
-// Origin pills
-const pills = document.querySelectorAll('.pill[data-origin]');
-pills.forEach(pill=>{
-  pill.addEventListener('click',()=>{
-    const o = pill.dataset.origin;
+var pills=document.querySelectorAll('.pill[data-origin]');
+pills.forEach(function(pill){
+  pill.addEventListener('click',function(){
+    var o=pill.dataset.origin;
     if(o==='AMBOS'){
-      pills.forEach(p=>p.classList.toggle('active', p.dataset.origin!=='AMBOS'));
-      // if all selected → ambos
-      pill.classList.toggle('active');
-      const ncA = document.querySelector('.pill[data-origin="NC"]').classList.contains('active');
-      const crA = document.querySelector('.pill[data-origin="CROSS"]').classList.contains('active');
-      state.origin = ncA&&crA?'AMBOS': ncA?'NC': crA?'CROSS':'AMBOS';
+      var isActive=pill.classList.contains('active');
+      if(!isActive){
+        pills.forEach(function(p){ p.classList.toggle('active',p.dataset.origin!=='AMBOS'); });
+        state.origin='AMBOS';
+      }
     } else {
       pill.classList.toggle('active');
       document.querySelector('.pill[data-origin="AMBOS"]').classList.remove('active');
-      const ncA = document.querySelector('.pill[data-origin="NC"]').classList.contains('active');
-      const crA = document.querySelector('.pill[data-origin="CROSS"]').classList.contains('active');
-      state.origin = ncA&&crA?'AMBOS': ncA?'NC': crA?'CROSS':'AMBOS';
+      var ncA=document.querySelector('.pill[data-origin="NC"]').classList.contains('active');
+      var crA=document.querySelector('.pill[data-origin="CROSS"]').classList.contains('active');
+      state.origin=ncA&&crA?'AMBOS':ncA?'NC':crA?'CROSS':'AMBOS';
+      if(ncA&&crA){ state.origin='AMBOS'; }
     }
     updateDashboard();
   });
 });
 
-document.getElementById('filter-ciudad').addEventListener('change',e=>{ state.ciudad=e.target.value; updateDashboard(); });
-document.getElementById('filter-estado').addEventListener('change',e=>{ state.estado=e.target.value; updateDashboard(); });
-document.getElementById('filter-fecha-ini').addEventListener('change',e=>{ state.fechaIni=e.target.value?new Date(e.target.value):null; updateDashboard(); });
-document.getElementById('filter-fecha-fin').addEventListener('change',e=>{ state.fechaFin=e.target.value?new Date(e.target.value):null; updateDashboard(); });
-
-document.getElementById('btn-reset').addEventListener('click',()=>{
+document.getElementById('filter-ciudad').addEventListener('change',function(e){ state.ciudad=e.target.value; updateDashboard(); });
+document.getElementById('filter-estado').addEventListener('change',function(e){ state.estado=e.target.value; updateDashboard(); });
+document.getElementById('filter-fecha-ini').addEventListener('change',function(e){ state.fechaIni=e.target.value?new Date(e.target.value):null; updateDashboard(); });
+document.getElementById('filter-fecha-fin').addEventListener('change',function(e){ state.fechaFin=e.target.value?new Date(e.target.value):null; updateDashboard(); });
+document.getElementById('btn-reset').addEventListener('click',function(){
   state={origin:'AMBOS',ciudad:'',estado:'',fechaIni:null,fechaFin:null,search:''};
   document.getElementById('filter-ciudad').value='';
   document.getElementById('filter-estado').value='';
   document.getElementById('filter-fecha-ini').value='';
   document.getElementById('filter-fecha-fin').value='';
   document.getElementById('search-table').value='';
-  pills.forEach(p=>p.classList.toggle('active', p.dataset.origin!=='AMBOS'));
+  pills.forEach(function(p){ p.classList.toggle('active',p.dataset.origin!=='AMBOS'); });
   updateDashboard();
 });
+document.getElementById('search-table').addEventListener('input',function(e){ state.search=e.target.value; buildDetailTable(getFilteredData()); });
 
-document.getElementById('search-table').addEventListener('input',e=>{ state.search=e.target.value; buildDetailTable(getFilteredData()); });
-
-// ─── BOOT ──────────────────────────────────────────────────
+// =============================================================
+//  BOOT
+// =============================================================
 loadData();
 </script>
 </body>
