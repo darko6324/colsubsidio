@@ -3,1352 +3,765 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Dashboard Operación Logística · Colsubsidio</title>
-
-<!-- External CDNs -->
+<title>Dashboard Logístico · Colsubsidio</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-
 <style>
-  :root {
-    --col-blue: #005596;
-    --col-blue-dark: #003f72;
-    --col-blue-light: #e8f1f9;
-    --col-yellow: #FFD100;
-    --col-yellow-dark: #e6bc00;
-    --col-gray: #f4f6f9;
-    --col-border: #e2e8f0;
-    --col-text: #1e293b;
-    --col-muted: #64748b;
-    --col-success: #10b981;
-    --col-danger: #ef4444;
-    --col-warning: #f59e0b;
-    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,85,150,.07);
-    --shadow-hover: 0 4px 12px rgba(0,0,0,.12), 0 8px 32px rgba(0,85,150,.12);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--col-gray);
-    color: var(--col-text);
-    min-height: 100vh;
-  }
-  /* ── SCROLLBAR ── */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
-
-  /* ── TOP HEADER ── */
-  #top-header {
-    background: var(--col-blue);
-    height: 56px;
-    display: flex;
-    align-items: center;
-    padding: 0 24px;
-    gap: 16px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 2px 8px rgba(0,0,0,.2);
-  }
-  .logo-mark {
-    width: 36px; height: 36px;
-    background: var(--col-yellow);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 14px; color: var(--col-blue);
-    letter-spacing: -0.5px;
-    flex-shrink: 0;
-  }
-  .header-title {
-    color: white;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-  }
-  .header-subtitle {
-    color: rgba(255,255,255,.55);
-    font-size: 12px;
-    font-weight: 400;
-  }
-  .header-divider { flex: 1; }
-  #last-update { color: rgba(255,255,255,.5); font-size: 11px; font-family: 'DM Mono', monospace; }
-
-  /* ── NAV TABS ── */
-  #nav-bar {
-    background: white;
-    border-bottom: 1px solid var(--col-border);
-    padding: 0 24px;
-    display: flex;
-    gap: 2px;
-    position: sticky;
-    top: 56px;
-    z-index: 99;
-  }
-  .nav-tab {
-    padding: 14px 20px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--col-muted);
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: all .2s;
-    white-space: nowrap;
-    user-select: none;
-  }
-  .nav-tab:hover { color: var(--col-blue); }
-  .nav-tab.active {
-    color: var(--col-blue);
-    border-bottom-color: var(--col-yellow);
-  }
-
-  /* ── FILTER BAR ── */
-  #filter-bar {
-    background: white;
-    border-bottom: 1px solid var(--col-border);
-    padding: 10px 24px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .filter-label { font-size: 11px; font-weight: 600; color: var(--col-muted); text-transform: uppercase; letter-spacing: .05em; }
-  .filter-select, .filter-input {
-    height: 34px;
-    padding: 0 12px;
-    border: 1.5px solid var(--col-border);
-    border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    color: var(--col-text);
-    background: white;
-    outline: none;
-    transition: border-color .2s;
-    cursor: pointer;
-  }
-  .filter-select:focus, .filter-input:focus { border-color: var(--col-blue); }
-  .btn-reset {
-    height: 34px; padding: 0 14px;
-    background: var(--col-blue-light);
-    color: var(--col-blue);
-    border: none; border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px; font-weight: 600;
-    cursor: pointer; transition: background .2s;
-  }
-  .btn-reset:hover { background: #d0e4f5; }
-  .origin-pills { display: flex; gap: 4px; }
-  .pill {
-    height: 34px; padding: 0 14px;
-    border-radius: 8px;
-    border: 1.5px solid var(--col-border);
-    background: white;
-    font-size: 12px; font-weight: 600; letter-spacing: .04em;
-    cursor: pointer; transition: all .15s;
-    color: var(--col-muted);
-  }
-  .pill.active { background: var(--col-blue); border-color: var(--col-blue); color: white; }
-  .pill:hover:not(.active) { border-color: var(--col-blue); color: var(--col-blue); }
-
-  /* ── PAGE SECTIONS ── */
-  .page-section { display: none; padding: 24px; }
-  .page-section.active { display: block; }
-
-  /* ── CARDS ── */
-  .card {
-    background: white;
-    border-radius: 14px;
-    box-shadow: var(--shadow);
-    padding: 20px;
-    transition: box-shadow .2s;
-  }
-  .card:hover { box-shadow: var(--shadow-hover); }
-  .card-title {
-    font-size: 11px; font-weight: 700; letter-spacing: .08em;
-    text-transform: uppercase; color: var(--col-muted);
-    margin-bottom: 4px;
-  }
-
-  /* ── KPI CARDS ── */
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 14px;
-    margin-bottom: 20px;
-  }
-  .kpi-card {
-    background: white;
-    border-radius: 14px;
-    box-shadow: var(--shadow);
-    padding: 18px 20px;
-    position: relative;
-    overflow: hidden;
-    transition: box-shadow .2s, transform .2s;
-  }
-  .kpi-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
-  .kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: var(--accent, var(--col-blue));
-  }
-  .kpi-icon {
-    width: 38px; height: 38px;
-    border-radius: 10px;
-    background: var(--accent-bg, var(--col-blue-light));
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 12px;
-    font-size: 18px;
-  }
-  .kpi-value {
-    font-size: 28px; font-weight: 700;
-    color: var(--col-text);
-    line-height: 1;
-    letter-spacing: -0.5px;
-    font-family: 'DM Mono', monospace;
-  }
-  .kpi-label { font-size: 12px; color: var(--col-muted); margin-top: 4px; font-weight: 500; }
-  .kpi-delta {
-    font-size: 11px; font-weight: 600;
-    margin-top: 6px;
-    display: flex; align-items: center; gap: 3px;
-  }
-  .delta-up { color: var(--col-success); }
-  .delta-down { color: var(--col-danger); }
-
-  /* ── CHARTS GRID ── */
-  .charts-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 14px;
-    margin-bottom: 20px;
-  }
-  @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
-  .chart-card { background: white; border-radius: 14px; box-shadow: var(--shadow); padding: 20px; }
-  .chart-card canvas { max-height: 260px; }
-  .chart-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-  .chart-title { font-size: 13px; font-weight: 700; color: var(--col-text); }
-  .chart-sub { font-size: 11px; color: var(--col-muted); margin-top: 2px; }
-
-  /* ── TABLE ── */
-  .detail-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .detail-table thead th {
-    padding: 10px 12px;
-    text-align: left;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .07em;
-    text-transform: uppercase;
-    color: var(--col-muted);
-    border-bottom: 1.5px solid var(--col-border);
-    white-space: nowrap;
-  }
-  .detail-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .1s; }
-  .detail-table tbody tr:hover { background: #f8fafc; }
-  .detail-table tbody td { padding: 9px 12px; color: var(--col-text); }
-  .badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 10px; border-radius: 99px;
-    font-size: 11px; font-weight: 600;
-  }
-  .badge-green { background: #d1fae5; color: #065f46; }
-  .badge-red { background: #fee2e2; color: #991b1b; }
-  .badge-yellow { background: #fef3c7; color: #92400e; }
-  .semaphore { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .sem-green { background: var(--col-success); }
-  .sem-red { background: var(--col-danger); }
-  .sem-yellow { background: var(--col-warning); }
-
-  /* ── MAP ── */
-  #map { height: 480px; border-radius: 12px; overflow: hidden; }
-  .leaflet-container { font-family: 'DM Sans', sans-serif !important; }
-
-  /* ── NOVEDADES ── */
-  .nov-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  @media (max-width: 700px) { .nov-grid { grid-template-columns: 1fr; } }
-  .nov-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
-  .nov-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
-  .nov-label { flex: 1; font-size: 13px; font-weight: 500; }
-  .nov-count { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 600; color: var(--col-blue); }
-  .nov-pct { font-size: 11px; color: var(--col-muted); min-width: 40px; text-align: right; }
-  .nov-bar-bg { height: 6px; background: #f1f5f9; border-radius: 99px; overflow: hidden; margin-top: 4px; }
-  .nov-bar-fill { height: 100%; border-radius: 99px; transition: width .6s ease; }
-
-  /* ── LOADER ── */
-  #loader {
-    position: fixed; inset: 0; z-index: 9999;
-    background: white;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
-  }
-  .spinner {
-    width: 48px; height: 48px;
-    border: 4px solid var(--col-blue-light);
-    border-top-color: var(--col-blue);
-    border-radius: 50%;
-    animation: spin .8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loader-text { font-size: 14px; color: var(--col-muted); font-weight: 500; }
-  #progress-bar-wrap { width: 200px; height: 4px; background: var(--col-blue-light); border-radius: 99px; overflow: hidden; }
-  #progress-bar { height: 100%; background: var(--col-blue); border-radius: 99px; width: 0; transition: width .3s; }
-
-  /* ── HOME HERO ── */
-  .home-hero {
-    background: linear-gradient(135deg, var(--col-blue) 0%, #003f72 100%);
-    border-radius: 16px;
-    padding: 40px 36px;
-    color: white;
-    margin-bottom: 20px;
-    position: relative;
-    overflow: hidden;
-  }
-  .home-hero::after {
-    content: '';
-    position: absolute;
-    right: -60px; top: -60px;
-    width: 260px; height: 260px;
-    background: rgba(255,209,0,.12);
-    border-radius: 50%;
-  }
-  .home-hero::before {
-    content: '';
-    position: absolute;
-    right: 40px; bottom: -80px;
-    width: 180px; height: 180px;
-    background: rgba(255,255,255,.05);
-    border-radius: 50%;
-  }
-  .home-hero h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; line-height: 1.2; }
-  .home-hero p { font-size: 14px; color: rgba(255,255,255,.7); max-width: 500px; }
-  .home-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-top: 24px;
-  }
-  .home-stat-item { background: rgba(255,255,255,.1); border-radius: 10px; padding: 14px 16px; }
-  .home-stat-val { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--col-yellow); }
-  .home-stat-lbl { font-size: 11px; color: rgba(255,255,255,.6); margin-top: 2px; }
-
-  /* ── TOOLTIP ── */
-  .tooltip-badge {
-    display: inline-block;
-    background: var(--col-blue);
-    color: white;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 1px 7px;
-    border-radius: 4px;
-    vertical-align: middle;
-  }
-
-  /* ── PAGINATION ── */
-  .pagination { display: flex; gap: 6px; align-items: center; justify-content: flex-end; margin-top: 12px; }
-  .page-btn {
-    width: 30px; height: 30px; border-radius: 6px;
-    border: 1.5px solid var(--col-border);
-    background: white; cursor: pointer;
-    font-size: 12px; font-weight: 600; color: var(--col-muted);
-    display: flex; align-items: center; justify-content: center;
-    transition: all .15s;
-  }
-  .page-btn.active { background: var(--col-blue); border-color: var(--col-blue); color: white; }
-  .page-btn:hover:not(.active) { border-color: var(--col-blue); color: var(--col-blue); }
-
-  /* ── HEAT LEGEND ── */
-  .heat-legend {
-    display: flex; gap: 10px; align-items: center;
-    font-size: 11px; color: var(--col-muted);
-  }
-  .heat-swatch { width: 40px; height: 10px; border-radius: 3px; }
-  .no-data-msg { text-align: center; padding: 40px; color: var(--col-muted); font-size: 14px; }
-
-  /* Animated number */
-  @keyframes countUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-  .kpi-value { animation: countUp .4s ease both; }
+:root{
+  --blue:#005596;--blue-dark:#003f72;--blue-light:#e8f1f9;
+  --yellow:#FFD100;--gray:#f4f6f9;--border:#e2e8f0;
+  --text:#1e293b;--muted:#64748b;
+  --green:#10b981;--red:#ef4444;--orange:#f59e0b;--purple:#8b5cf6;--cyan:#06b6d4;
+  --shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,85,150,.08);
+  --shadow-lg:0 4px 12px rgba(0,0,0,.12),0 8px 32px rgba(0,85,150,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--gray);color:var(--text);min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
+#loader{position:fixed;inset:0;z-index:9999;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spinner{width:44px;height:44px;border:4px solid var(--blue-light);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-msg{font-size:13px;color:var(--muted);font-weight:500}
+.loader-sub{font-size:11px;color:#94a3b8;font-family:'DM Mono',monospace}
+#prog-wrap{width:220px;height:4px;background:var(--blue-light);border-radius:99px;overflow:hidden}
+#prog-bar{height:100%;background:var(--blue);border-radius:99px;width:0;transition:width .3s}
+#hdr{background:var(--blue);height:54px;display:flex;align-items:center;padding:0 22px;gap:14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.logo{width:34px;height:34px;background:var(--yellow);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:var(--blue);flex-shrink:0}
+.hdr-title{color:white;font-size:13px;font-weight:700}
+.hdr-sub{color:rgba(255,255,255,.5);font-size:11px}
+#hdr-update{color:rgba(255,255,255,.45);font-size:10px;font-family:'DM Mono',monospace;margin-left:auto}
+#nav{background:white;border-bottom:1px solid var(--border);padding:0 22px;display:flex;position:sticky;top:54px;z-index:99;overflow-x:auto}
+.tab{padding:13px 18px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;user-select:none}
+.tab:hover{color:var(--blue)}.tab.on{color:var(--blue);border-bottom-color:var(--yellow)}
+#fbar{background:white;border-bottom:1px solid var(--border);padding:9px 22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.flabel{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.fsel,.finput{height:32px;padding:0 11px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:white;outline:none;transition:border-color .15s;cursor:pointer}
+.fsel:focus,.finput:focus{border-color:var(--blue)}
+.pill-group{display:flex;gap:3px}
+.pill{height:32px;padding:0 13px;border-radius:8px;border:1.5px solid var(--border);background:white;font-size:11px;font-weight:700;letter-spacing:.04em;cursor:pointer;transition:all .15s;color:var(--muted)}
+.pill.on{background:var(--blue);border-color:var(--blue);color:white}
+.pill:hover:not(.on){border-color:var(--blue);color:var(--blue)}
+.btn-rst{height:32px;padding:0 13px;background:var(--blue-light);color:var(--blue);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer}
+.btn-rst:hover{background:#d0e4f5}
+#rec-count{margin-left:auto;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+.page{display:none;padding:20px 22px}.page.on{display:block}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:white;border-radius:13px;box-shadow:var(--shadow);padding:16px 18px;position:relative;overflow:hidden;transition:box-shadow .2s,transform .15s;cursor:default}
+.kpi:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--ac,var(--blue))}
+.kpi-icon{width:36px;height:36px;border-radius:10px;background:var(--ac-bg,var(--blue-light));display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px}
+.kpi-val{font-size:26px;font-weight:700;line-height:1;letter-spacing:-.5px;font-family:'DM Mono',monospace}
+.kpi-lbl{font-size:11px;color:var(--muted);margin-top:4px;font-weight:500}
+.charts-2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px}
+.charts-eq{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:860px){.charts-2,.charts-eq{grid-template-columns:1fr}}
+.card{background:white;border-radius:13px;box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
+.card-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px}
+.card-sub{font-size:10px;color:var(--muted);margin-bottom:14px}
+canvas{max-height:260px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{padding:9px 11px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid #f1f5f9;transition:background .1s}
+tbody tr:hover{background:#f8fafc}
+tbody td{padding:8px 11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700}
+.b-green{background:#d1fae5;color:#065f46}.b-red{background:#fee2e2;color:#991b1b}
+.b-yellow{background:#fef3c7;color:#92400e}.b-gray{background:#f1f5f9;color:#64748b}
+.b-blue{background:#dbeafe;color:#1e40af}
+.sem{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px;flex-shrink:0}
+.s-g{background:var(--green)}.s-y{background:var(--orange)}.s-r{background:var(--red)}
+.pgn{display:flex;gap:5px;align-items:center;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+.pg-btn{width:28px;height:28px;border-radius:6px;border:1.5px solid var(--border);background:white;cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .12s}
+.pg-btn.on{background:var(--blue);border-color:var(--blue);color:white}
+.pg-btn:hover:not(.on){border-color:var(--blue);color:var(--blue)}
+#map{height:460px;border-radius:11px;overflow:hidden}
+.nov-list{display:flex;flex-direction:column}
+.nov-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #f1f5f9}
+.nov-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+.nov-lbl{flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nov-cnt{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--blue);min-width:48px;text-align:right}
+.nov-pct{font-size:10px;color:var(--muted);min-width:40px;text-align:right}
+.bar-bg{height:5px;background:#f1f5f9;border-radius:99px;overflow:hidden;flex-shrink:0;width:70px}
+.bar-fill{height:100%;border-radius:99px;transition:width .5s ease}
+.hero{background:linear-gradient(135deg,var(--blue) 0%,#003f72 100%);border-radius:15px;padding:32px 30px;color:white;margin-bottom:18px;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;right:-50px;top:-50px;width:220px;height:220px;background:rgba(255,209,0,.1);border-radius:50%}
+.hero h1{font-size:22px;font-weight:700;line-height:1.25;margin-bottom:6px}
+.hero p{font-size:13px;color:rgba(255,255,255,.65);max-width:480px}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}
+.hs-item{background:rgba(255,255,255,.1);border-radius:10px;padding:12px 14px}
+.hs-val{font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--yellow)}
+.hs-lbl{font-size:10px;color:rgba(255,255,255,.6);margin-top:2px}
+.empty{text-align:center;padding:36px;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
 
-<!-- LOADER -->
 <div id="loader">
-  <div class="logo-mark" style="width:56px;height:56px;font-size:18px;border-radius:14px;">CS</div>
+  <div class="logo" style="width:52px;height:52px;font-size:17px;border-radius:13px">CS</div>
   <div class="spinner"></div>
-  <div class="loader-text">Conectando con Google Sheets…</div>
-  <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
-  <div id="loader-detail" style="font-size:11px;color:#94a3b8;font-family:'DM Mono',monospace;margin-top:4px">Iniciando…</div>
+  <div class="loader-msg">Cargando datos logísticos…</div>
+  <div class="loader-sub" id="loader-sub">Iniciando…</div>
+  <div id="prog-wrap"><div id="prog-bar"></div></div>
 </div>
 
-<!-- TOP HEADER -->
-<header id="top-header">
-  <div class="logo-mark">CS</div>
-  <div>
-    <div class="header-title">Colsubsidio · Operación Logística</div>
-    <div class="header-subtitle">Dashboard de Business Intelligence</div>
-  </div>
-  <div class="header-divider"></div>
-  <span id="last-update">Actualizando…</span>
+<header id="hdr">
+  <div class="logo">CS</div>
+  <div><div class="hdr-title">Colsubsidio · Operación Logística</div><div class="hdr-sub">Dashboard Business Intelligence</div></div>
+  <span id="hdr-update">—</span>
 </header>
 
-<!-- NAV -->
-<nav id="nav-bar">
-  <div class="nav-tab active" data-tab="home">🏠 Home</div>
-  <div class="nav-tab" data-tab="general">📊 General</div>
-  <div class="nav-tab" data-tab="novedades">⚠️ Novedades</div>
-  <div class="nav-tab" data-tab="mapa">🗺️ Mapa de Calor</div>
-  <div class="nav-tab" data-tab="detalle">📋 Detalle</div>
+<nav id="nav">
+  <div class="tab on" data-tab="general">📊 General</div>
+  <div class="tab" data-tab="novedades">⚠️ Novedades</div>
+  <div class="tab" data-tab="mapa">🗺️ Mapa de Calor</div>
+  <div class="tab" data-tab="detalle">📋 Detalle</div>
 </nav>
 
-<!-- FILTERS -->
-<div id="filter-bar">
-  <span class="filter-label">Origen</span>
-  <div class="origin-pills">
-    <button class="pill active" data-origin="NC">NC</button>
-    <button class="pill" data-origin="CROSS">CROSS</button>
-    <button class="pill active" data-origin="AMBOS">AMBOS</button>
+<div id="fbar">
+  <span class="flabel">Origen</span>
+  <div class="pill-group">
+    <button class="pill on" data-o="NC">NC</button>
+    <button class="pill on" data-o="CROSS">CROSS</button>
   </div>
-  <span class="filter-label">Ciudad</span>
-  <select class="filter-select" id="filter-ciudad"><option value="">Todas</option></select>
-  <span class="filter-label">Estado</span>
-  <select class="filter-select" id="filter-estado"><option value="">Todos</option></select>
-  <span class="filter-label">Fecha desde</span>
-  <input type="date" class="filter-input" id="filter-fecha-ini"/>
-  <span class="filter-label">hasta</span>
-  <input type="date" class="filter-input" id="filter-fecha-fin"/>
-  <button class="btn-reset" id="btn-reset">↺ Limpiar</button>
-  <span id="total-registros" style="margin-left:auto;font-size:12px;color:var(--col-muted);font-family:'DM Mono',monospace;"></span>
+  <span class="flabel">Ciudad</span>
+  <select class="fsel" id="f-ciudad"><option value="">Todas</option></select>
+  <span class="flabel">Novedad</span>
+  <select class="fsel" id="f-novedad"><option value="">Todas</option></select>
+  <span class="flabel">Desde</span>
+  <input type="date" class="finput" id="f-fi"/>
+  <span class="flabel">Hasta</span>
+  <input type="date" class="finput" id="f-ff"/>
+  <button class="btn-rst" id="btn-reset">↺ Limpiar</button>
+  <span id="rec-count"></span>
 </div>
 
-<!-- ===================== HOME ===================== -->
-<section class="page-section active" id="page-home">
-  <div class="home-hero">
-    <h1>Dashboard Operación Logística<br><span style="color:var(--col-yellow)">Colsubsidio</span></h1>
-    <p>Monitoreo en tiempo real de indicadores clave de despacho, efectividad y novedades para los modelos No Centralizado y Crossdocking.</p>
-    <div class="home-stats">
-      <div class="home-stat-item">
-        <div class="home-stat-val" id="hs-guias">—</div>
-        <div class="home-stat-lbl">Total Guías</div>
-      </div>
-      <div class="home-stat-item">
-        <div class="home-stat-val" id="hs-efectividad">—</div>
-        <div class="home-stat-lbl">% Efectividad Global</div>
-      </div>
-      <div class="home-stat-item">
-        <div class="home-stat-val" id="hs-recursos">—</div>
-        <div class="home-stat-lbl">Recursos Únicos</div>
-      </div>
+<!-- GENERAL -->
+<section class="page on" id="page-general">
+  <div class="hero">
+    <h1>Dashboard Operación Logística<br><span style="color:var(--yellow)">Colsubsidio</span></h1>
+    <p>KPIs consolidados NC + CROSS. Filtra por origen, ciudad, novedad o fecha para segmentar el análisis.</p>
+    <div class="hero-stats">
+      <div class="hs-item"><div class="hs-val" id="hs-guias">—</div><div class="hs-lbl">Total Guías</div></div>
+      <div class="hs-item"><div class="hs-val" id="hs-efect">—</div><div class="hs-lbl">% Efectividad</div></div>
+      <div class="hs-item"><div class="hs-val" id="hs-rec">—</div><div class="hs-lbl">Recursos Únicos</div></div>
     </div>
   </div>
-
   <div class="kpi-grid">
-    <div class="kpi-card" style="--accent:var(--col-blue);--accent-bg:var(--col-blue-light)">
-      <div class="kpi-icon">📦</div>
-      <div class="kpi-value" id="h-kpi-total">—</div>
-      <div class="kpi-label">Total Guías</div>
-    </div>
-    <div class="kpi-card" style="--accent:var(--col-success);--accent-bg:#d1fae5">
-      <div class="kpi-icon">✅</div>
-      <div class="kpi-value" id="h-kpi-efectivos">—</div>
-      <div class="kpi-label">Efectivos (Entregados)</div>
-    </div>
-    <div class="kpi-card" style="--accent:var(--col-yellow);--accent-bg:#fef9e7">
-      <div class="kpi-icon">📈</div>
-      <div class="kpi-value" id="h-kpi-efect-pct">—</div>
-      <div class="kpi-label">% Efectividad</div>
-    </div>
-    <div class="kpi-card" style="--accent:#8b5cf6;--accent-bg:#ede9fe">
-      <div class="kpi-icon">⏱️</div>
-      <div class="kpi-value" id="h-kpi-prom-pe">—</div>
-      <div class="kpi-label">Promedio PE (días)</div>
-    </div>
-    <div class="kpi-card" style="--accent:#06b6d4;--accent-bg:#e0f7fa">
-      <div class="kpi-icon">🚛</div>
-      <div class="kpi-value" id="h-kpi-recursos">—</div>
-      <div class="kpi-label">Recursos Únicos</div>
-    </div>
-    <div class="kpi-card" style="--accent:var(--col-danger);--accent-bg:#fee2e2">
-      <div class="kpi-icon">⚠️</div>
-      <div class="kpi-value" id="h-kpi-novedades">—</div>
-      <div class="kpi-label">Total Novedades</div>
-    </div>
+    <div class="kpi" style="--ac:var(--blue);--ac-bg:var(--blue-light)"><div class="kpi-icon">📦</div><div class="kpi-val" id="kpi-total">—</div><div class="kpi-lbl">Total Guías</div></div>
+    <div class="kpi" style="--ac:var(--green);--ac-bg:#d1fae5"><div class="kpi-icon">✅</div><div class="kpi-val" id="kpi-efect">—</div><div class="kpi-lbl">Efectivos (Sin Novedad)</div></div>
+    <div class="kpi" style="--ac:var(--yellow);--ac-bg:#fef9e7"><div class="kpi-icon">📈</div><div class="kpi-val" id="kpi-pct">—</div><div class="kpi-lbl">% Efectividad</div></div>
+    <div class="kpi" style="--ac:var(--purple);--ac-bg:#ede9fe"><div class="kpi-icon">⏱️</div><div class="kpi-val" id="kpi-pe">—</div><div class="kpi-lbl">Promedio PE</div></div>
+    <div class="kpi" style="--ac:var(--cyan);--ac-bg:#e0f7fa"><div class="kpi-icon">🚛</div><div class="kpi-val" id="kpi-rec">—</div><div class="kpi-lbl">Recursos Únicos</div></div>
+    <div class="kpi" style="--ac:var(--red);--ac-bg:#fee2e2"><div class="kpi-icon">⚠️</div><div class="kpi-val" id="kpi-nov">—</div><div class="kpi-lbl">Con Novedad</div></div>
   </div>
-
-  <div class="charts-grid">
-    <div class="chart-card">
-      <div class="chart-header">
-        <div>
-          <div class="chart-title">Efectividad por Período</div>
-          <div class="chart-sub">Tendencia de % efectividad</div>
-        </div>
-      </div>
-      <canvas id="home-trend-chart"></canvas>
-    </div>
-    <div class="chart-card">
-      <div class="chart-header">
-        <div>
-          <div class="chart-title">Top 8 Ciudades</div>
-          <div class="chart-sub">Entregas por ciudad</div>
-        </div>
-      </div>
-      <canvas id="home-city-chart"></canvas>
-    </div>
+  <div class="charts-2">
+    <div class="card"><div class="card-title">Efectividad por Período</div><div class="card-sub">% sin novedad vs total guías por mes</div><canvas id="ch-trend"></canvas></div>
+    <div class="card"><div class="card-title">Mix NC vs CROSS</div><div class="card-sub">Distribución de guías por modelo</div><canvas id="ch-mix"></canvas></div>
   </div>
+  <div class="charts-eq">
+    <div class="card"><div class="card-title">Top 10 Ciudades — Volumen</div><div class="card-sub">Guías totales por ciudad</div><canvas id="ch-ciudad"></canvas></div>
+    <div class="card"><div class="card-title">Top 10 Ciudades — Efectividad</div><div class="card-sub">% efectividad (color: verde ≥90% · amarillo ≥70% · rojo &lt;70%)</div><canvas id="ch-ciudad-efect"></canvas></div>
+  </div>
+  <div class="card"><div class="card-title">Distribución Completa de Novedades</div><div class="card-sub">Conteo por valor de cluster_novedad — verde=efectivo, rojo=novedad</div><canvas id="ch-nov-bar" style="max-height:320px"></canvas></div>
 </section>
 
-<!-- ===================== GENERAL ===================== -->
-<section class="page-section" id="page-general">
-  <div class="kpi-grid">
-    <div class="kpi-card" style="--accent:var(--col-blue);--accent-bg:var(--col-blue-light)">
-      <div class="kpi-icon">📦</div>
-      <div class="kpi-value" id="g-kpi-total">—</div>
-      <div class="kpi-label">Total Guías</div>
+<!-- NOVEDADES -->
+<section class="page" id="page-novedades">
+  <div class="charts-eq">
+    <div class="card">
+      <div class="card-title">Donut — Novedades con Impacto</div>
+      <div class="card-sub">Sólo guías con novedad (excluye SIN NOVEDAD y ENTREGADO PREVIAMENTE)</div>
+      <canvas id="ch-nov-donut" style="max-height:280px"></canvas>
     </div>
-    <div class="kpi-card" style="--accent:var(--col-success);--accent-bg:#d1fae5">
-      <div class="kpi-icon">✅</div>
-      <div class="kpi-value" id="g-kpi-efectivos">—</div>
-      <div class="kpi-label">Efectivos</div>
-    </div>
-    <div class="kpi-card" style="--accent:var(--col-yellow);--accent-bg:#fef9e7">
-      <div class="kpi-icon">📈</div>
-      <div class="kpi-value" id="g-kpi-efect-pct">—</div>
-      <div class="kpi-label">% Efectividad</div>
-    </div>
-    <div class="kpi-card" style="--accent:#8b5cf6;--accent-bg:#ede9fe">
-      <div class="kpi-icon">⏱️</div>
-      <div class="kpi-value" id="g-kpi-prom-pe">—</div>
-      <div class="kpi-label">Promedio PE</div>
-    </div>
-    <div class="kpi-card" style="--accent:#06b6d4;--accent-bg:#e0f7fa">
-      <div class="kpi-icon">🚛</div>
-      <div class="kpi-value" id="g-kpi-recursos">—</div>
-      <div class="kpi-label">Recursos Únicos</div>
+    <div class="card" style="overflow-y:auto;max-height:400px">
+      <div class="card-title">Detalle por Cluster (todos los valores)</div>
+      <div class="card-sub">Incluye SIN NOVEDAD para contexto del total</div>
+      <div class="nov-list" id="nov-list-all"></div>
     </div>
   </div>
-
-  <div class="charts-grid">
-    <div class="chart-card">
-      <div class="chart-header">
-        <div><div class="chart-title">Efectividad por Período</div><div class="chart-sub">% entregados sobre total de guías</div></div>
-      </div>
-      <canvas id="trend-chart"></canvas>
-    </div>
-    <div class="chart-card">
-      <div class="chart-header">
-        <div><div class="chart-title">Mix Modelo</div><div class="chart-sub">NC vs Crossdocking</div></div>
-      </div>
-      <canvas id="mix-chart"></canvas>
-    </div>
-  </div>
-
-  <div class="card" style="margin-bottom:14px">
-    <div class="chart-header">
-      <div><div class="chart-title">Entregas por Ciudad (Top 10)</div></div>
-    </div>
-    <canvas id="city-chart" style="max-height:280px"></canvas>
-  </div>
-
   <div class="card">
-    <div class="chart-header">
-      <div><div class="chart-title">Estado de Guías</div><div class="chart-sub">Distribución por estado</div></div>
-    </div>
-    <canvas id="estado-chart" style="max-height:250px"></canvas>
+    <div class="card-title">Top 10 Ciudades con Más Novedades</div>
+    <div class="card-sub">Guías con novedad real (excluye SIN NOVEDAD)</div>
+    <canvas id="ch-nov-ciudad" style="max-height:280px"></canvas>
+  </div>
+  <div class="charts-eq">
+    <div class="card"><div class="card-title">Novedades NC vs CROSS</div><div class="card-sub">Comparativa por modelo</div><canvas id="ch-nov-origen" style="max-height:240px"></canvas></div>
+    <div class="card"><div class="card-title">Tendencia % Novedades por Mes</div><div class="card-sub">Evolución mensual del porcentaje de guías con novedad</div><canvas id="ch-nov-trend" style="max-height:240px"></canvas></div>
   </div>
 </section>
 
-<!-- ===================== NOVEDADES ===================== -->
-<section class="page-section" id="page-novedades">
-  <div class="nov-grid">
-    <div class="card">
-      <div class="chart-title" style="margin-bottom:16px">Distribución de Novedades</div>
-      <canvas id="nov-donut" style="max-height:280px"></canvas>
-    </div>
-    <div class="card">
-      <div class="chart-title" style="margin-bottom:16px">Detalle por Cluster</div>
-      <div id="nov-list"></div>
-    </div>
-  </div>
-  <div class="card" style="margin-top:14px">
-    <div class="chart-title" style="margin-bottom:16px">Novedades por Ciudad</div>
-    <canvas id="nov-ciudad-chart" style="max-height:260px"></canvas>
-  </div>
-</section>
-
-<!-- ===================== MAPA ===================== -->
-<section class="page-section" id="page-mapa">
-  <div class="card" style="margin-bottom:14px;padding-bottom:14px">
-    <div class="chart-header">
-      <div>
-        <div class="chart-title">Mapa de Calor — Densidad de Entregas en Colombia</div>
-        <div class="chart-sub">Concentración geográfica de guías por ciudad</div>
-      </div>
-      <div class="heat-legend">
-        <div class="heat-swatch" style="background:linear-gradient(to right,#ffffcc,#fd8d3c,#800026)"></div>
-        <span>Baja → Alta</span>
-      </div>
-    </div>
+<!-- MAPA -->
+<section class="page" id="page-mapa">
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Mapa de Calor — Densidad de Entregas Colombia</div>
+    <div class="card-sub">Tamaño = volumen de guías · Verde ≥90% efectividad · Amarillo ≥70% · Rojo &lt;70%</div>
     <div id="map"></div>
   </div>
   <div class="card">
-    <div class="chart-title" style="margin-bottom:12px">Resumen por Ciudad</div>
-    <div id="map-table-wrap" style="overflow-x:auto;">
-      <table class="detail-table" id="map-table">
-        <thead>
-          <tr>
-            <th>Ciudad</th>
-            <th>Total Guías</th>
-            <th>Efectivos</th>
-            <th>% Efect.</th>
-            <th>Novedades</th>
-          </tr>
-        </thead>
-        <tbody id="map-table-body"></tbody>
-      </table>
+    <div class="card-title">Resumen por Ciudad</div>
+    <div class="tbl-wrap">
+      <table><thead><tr><th>Ciudad</th><th>Total</th><th>Efectivos</th><th>% Efect.</th><th>Novedades</th><th>NC</th><th>CROSS</th></tr></thead>
+      <tbody id="map-tbody"></tbody></table>
     </div>
   </div>
 </section>
 
-<!-- ===================== DETALLE ===================== -->
-<section class="page-section" id="page-detalle">
+<!-- DETALLE -->
+<section class="page" id="page-detalle">
   <div class="card">
-    <div class="chart-header" style="margin-bottom:12px">
-      <div><div class="chart-title">Tabla Detallada de Guías</div><div class="chart-sub" id="detail-count"></div></div>
-      <input type="text" id="search-table" class="filter-input" placeholder="🔍 Buscar…" style="width:200px"/>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div><div class="card-title">Tabla Detallada de Guías</div><div class="card-sub" id="det-count">0 registros</div></div>
+      <input type="text" id="srch" class="finput" placeholder="🔍 Buscar en tabla…" style="width:210px"/>
     </div>
-    <div style="overflow-x:auto">
-      <table class="detail-table" id="detail-table">
-        <thead id="detail-thead"></thead>
-        <tbody id="detail-tbody"></tbody>
-      </table>
-    </div>
-    <div class="pagination" id="pagination"></div>
+    <div class="tbl-wrap"><table><thead id="det-head"></thead><tbody id="det-body"></tbody></table></div>
+    <div class="pgn" id="pgn"></div>
   </div>
 </section>
 
 <script>
-// =============================================================
-//  DATA LAYER
-// =============================================================
+// ================================================
+// URLS (GIDs confirmados por usuario)
+// ================================================
+const BASE    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS56aIMrnjnUKff8A5LXt92vZN6ME2LGBpAkRyBKdgLgz8dxSNKApXFBZhKnCzb7Q/pub';
+const URL_NC  = BASE + '?gid=0&single=true&output=csv';
+const URL_CROSS = BASE + '?gid=480391335&single=true&output=csv';
 
-// URLs confirmadas por el usuario
-// NC  = primera hoja (gid=0, default)
-// CROSS = segunda hoja — GID se descubre automaticamente
-const BASE_PUB = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS56aIMrnjnUKff8A5LXt92vZN6ME2LGBpAkRyBKdgLgz8dxSNKApXFBZhKnCzb7Q/pub';
-// URLs exactas confirmadas por el usuario
-const URL_NC    = BASE_PUB + '?gid=0&single=true&output=csv';
-const URL_CROSS = BASE_PUB + '?gid=480391335&single=true&output=csv';
-
-// GIDs fallback (no se usan si las URLs exactas funcionan)
-const CROSS_GIDS = ['480391335'];
-
-// Proxies CORS — el browser los intenta en orden
-const PROXY_FNS = [
-  function(u){ return u; },
-  function(u){ return 'https://corsproxy.io/?' + encodeURIComponent(u); },
-  function(u){ return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); }
+const PROXIES = [
+  u => u,
+  u => 'https://corsproxy.io/?' + encodeURIComponent(u),
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
 ];
 
-let rawNC = [], rawCROSS = [];
-let charts = {};
-let mapInstance = null, heatLayer = null;
-let currentPage = 1;
-const PAGE_SIZE = 20;
-let detailData = [];
-let ncFirstRowKey = '';  // to detect if CROSS == same sheet as NC
+// ================================================
+// STATE
+// ================================================
+let RAW_NC=[], RAW_CROSS=[], FIELDS={};
+let CHARTS={}, MAP_INST=null, MAP_LAYERS=[];
+let DET_DATA=[], DET_PAGE=1;
+const PG=25;
+let ST={nc:true,cross:true,ciudad:'',novedad:'',fi:null,ff:null,search:''};
 
-// Field name mapping (auto-detected)
-let FIELDS = {
-  estado: null,
-  ciudad: null,
-  fecha: null,
-  placa: null,
-  novedad: null,
-  pe: null,
-  lat: null,
-  lon: null,
+// ================================================
+// CITY COORDS (Colombia)
+// ================================================
+const COORDS={
+  'BOGOTA':{lat:4.711,lng:-74.072},'BOGOTA D.C.':{lat:4.711,lng:-74.072},'BOGOTA DC':{lat:4.711,lng:-74.072},
+  'BOGOTA D C':{lat:4.711,lng:-74.072},'BOGOTA (CUNDINAMARCA)':{lat:4.711,lng:-74.072},
+  'MEDELLIN':{lat:6.244,lng:-75.581},'CALI':{lat:3.452,lng:-76.532},
+  'BARRANQUILLA':{lat:10.969,lng:-74.781},'CARTAGENA':{lat:10.393,lng:-75.483},
+  'BUCARAMANGA':{lat:7.119,lng:-73.123},'PEREIRA':{lat:4.813,lng:-75.696},
+  'MANIZALES':{lat:5.070,lng:-75.514},'IBAGUE':{lat:4.439,lng:-75.232},
+  'CUCUTA':{lat:7.894,lng:-72.508},'SANTA MARTA':{lat:11.241,lng:-74.212},
+  'VILLAVICENCIO':{lat:4.142,lng:-73.627},'ARMENIA':{lat:4.534,lng:-75.681},
+  'NEIVA':{lat:2.927,lng:-75.282},'MONTERIA':{lat:8.758,lng:-75.888},
+  'VALLEDUPAR':{lat:10.463,lng:-73.253},'PASTO':{lat:1.214,lng:-77.281},
+  'SINCELEJO':{lat:9.305,lng:-75.398},'POPAYAN':{lat:2.445,lng:-76.615},
+  'TUNJA':{lat:5.535,lng:-73.368},'BARRANCABERMEJA':{lat:7.065,lng:-73.855},
+  'GIRARDOT':{lat:4.305,lng:-74.802},'DUITAMA':{lat:5.825,lng:-73.028},
+  'SOGAMOSO':{lat:5.717,lng:-72.928},'BUENAVENTURA':{lat:3.880,lng:-77.031},
+  'PALMIRA':{lat:3.539,lng:-76.304},'BELLO':{lat:6.330,lng:-75.558},
+  'ITAGUI':{lat:6.185,lng:-75.600},'ENVIGADO':{lat:6.175,lng:-75.585},
+  'SOACHA':{lat:4.579,lng:-74.215},'CHIA':{lat:4.861,lng:-74.057},
+  'ZIPAQUIRA':{lat:5.022,lng:-74.006},'FUSAGASUGA':{lat:4.346,lng:-74.365},
+  'FACATATIVA':{lat:4.815,lng:-74.355},'MOSQUERA':{lat:4.707,lng:-74.231},
+  'MADRID':{lat:4.734,lng:-74.268},'FUNZA':{lat:4.715,lng:-74.214},
+  'CAJICA':{lat:4.918,lng:-74.013},'TOCANCIPA':{lat:4.967,lng:-73.915},
+  'BUGA':{lat:3.899,lng:-76.299},'TULUA':{lat:4.084,lng:-76.196},
+  'CARTAGO':{lat:4.746,lng:-75.912},'DOSQUEBRADAS':{lat:4.839,lng:-75.664},
+  'RIONEGRO':{lat:6.154,lng:-75.374},'APARTADO':{lat:7.881,lng:-76.627},
+  'TURBO':{lat:8.093,lng:-76.724},'CAUCASIA':{lat:7.988,lng:-75.196},
+  'ESPINAL':{lat:4.152,lng:-74.889},'MELGAR':{lat:4.202,lng:-74.645},
+  'HONDA':{lat:5.202,lng:-74.740},'FLORENCIA':{lat:1.614,lng:-75.606},
+  'ARAUCA':{lat:7.090,lng:-70.762},'YOPAL':{lat:5.338,lng:-72.396},
+  'RIOHACHA':{lat:11.544,lng:-72.907},'QUIBDO':{lat:5.692,lng:-76.658},
+  'SANTA ROSA DE CABAL':{lat:4.869,lng:-75.622},'VILLETA':{lat:5.013,lng:-74.476},
 };
 
-// Colombia city coordinates
-const CITY_COORDS = {
-  'BOGOTA':{'lat':4.711,'lon':-74.0721},'BOGOTA D.C.':{'lat':4.711,'lon':-74.0721},
-  'BOGOTA DC':{'lat':4.711,'lon':-74.0721},'BOGOTA D C':{'lat':4.711,'lon':-74.0721},
-  'MEDELLIN':{'lat':6.2442,'lon':-75.5812},
-  'CALI':{'lat':3.4516,'lon':-76.5319},
-  'BARRANQUILLA':{'lat':10.9685,'lon':-74.7813},
-  'CARTAGENA':{'lat':10.3932,'lon':-75.4832},
-  'BUCARAMANGA':{'lat':7.1193,'lon':-73.1227},
-  'PEREIRA':{'lat':4.8133,'lon':-75.6961},
-  'MANIZALES':{'lat':5.0703,'lon':-75.5138},
-  'IBAGUE':{'lat':4.4389,'lon':-75.2322},
-  'CUCUTA':{'lat':7.8939,'lon':-72.5078},
-  'SANTA MARTA':{'lat':11.2408,'lon':-74.2116},
-  'VILLAVICENCIO':{'lat':4.142,'lon':-73.6266},
-  'ARMENIA':{'lat':4.5339,'lon':-75.6811},
-  'NEIVA':{'lat':2.9273,'lon':-75.2819},
-  'MONTERIA':{'lat':8.7575,'lon':-75.8878},
-  'VALLEDUPAR':{'lat':10.4631,'lon':-73.2532},
-  'PASTO':{'lat':1.2136,'lon':-77.2811},
-  'SINCELEJO':{'lat':9.3047,'lon':-75.3978},
-  'POPAYAN':{'lat':2.4448,'lon':-76.6147},
-  'TUNJA':{'lat':5.5353,'lon':-73.3678},
-  'FLORENCIA':{'lat':1.6144,'lon':-75.6063},
-  'RIOHACHA':{'lat':11.5444,'lon':-72.9073},
-  'QUIBDO':{'lat':5.6919,'lon':-76.6583},
-  'ARAUCA':{'lat':7.0897,'lon':-70.7617},
-  'YOPAL':{'lat':5.3378,'lon':-72.3959},
-  'BARRANCABERMEJA':{'lat':7.0652,'lon':-73.8547},
-  'GIRARDOT':{'lat':4.3047,'lon':-74.8018},
-  'DUITAMA':{'lat':5.8254,'lon':-73.0275},
-  'SOGAMOSO':{'lat':5.7173,'lon':-72.9275},
-  'BUENAVENTURA':{'lat':3.8801,'lon':-77.0311},
-  'PALMIRA':{'lat':3.5394,'lon':-76.3036},
-  'BELLO':{'lat':6.3295,'lon':-75.5577},
-  'ITAGUI':{'lat':6.1846,'lon':-75.5996},
-  'ENVIGADO':{'lat':6.1752,'lon':-75.5849},
-  'SOACHA':{'lat':4.5794,'lon':-74.2149},
-  'CHIA':{'lat':4.8607,'lon':-74.0567},
-  'ZIPAQUIRA':{'lat':5.0222,'lon':-74.0061},
-  'FUSAGASUGA':{'lat':4.3462,'lon':-74.3645},
-  'FACATATIVA':{'lat':4.8149,'lon':-74.3549},
-  'MOSQUERA':{'lat':4.7065,'lon':-74.2307},
-  'MADRID':{'lat':4.7344,'lon':-74.2681},
-  'FUNZA':{'lat':4.7149,'lon':-74.2139},
-  'CAJICA':{'lat':4.9175,'lon':-74.0133},
-  'TOCANCIPA':{'lat':4.9669,'lon':-73.9148},
-  'GACHANCIPA':{'lat':4.9937,'lon':-73.8779},
-  'LA CALERA':{'lat':4.7207,'lon':-73.9691},
-  'UBATE':{'lat':5.3153,'lon':-73.8189},
-  'GUADUAS':{'lat':5.0704,'lon':-74.5967},
-  'VILLETA':{'lat':5.0133,'lon':-74.4755},
-  'HONDA':{'lat':5.2022,'lon':-74.7396},
-  'ESPINAL':{'lat':4.1518,'lon':-74.889},
-  'FLANDES':{'lat':4.2872,'lon':-74.8101},
-  'MELGAR':{'lat':4.2024,'lon':-74.6448},
-  'BUGA':{'lat':3.8993,'lon':-76.2992},
-  'TULUA':{'lat':4.0838,'lon':-76.1963},
-  'CARTAGO':{'lat':4.7456,'lon':-75.9117},
-  'DOSQUEBRADAS':{'lat':4.8392,'lon':-75.6636},
-  'SANTA ROSA DE CABAL':{'lat':4.8688,'lon':-75.6222},
-  'RIONEGRO':{'lat':6.1543,'lon':-75.3741},
-  'MARINILLA':{'lat':6.1774,'lon':-75.3378},
-  'APARTADO':{'lat':7.8808,'lon':-76.6265},
-  'TURBO':{'lat':8.0933,'lon':-76.7239},
-  'MONTEBELLO':{'lat':5.9318,'lon':-75.5016},
-  'CAUCASIA':{'lat':7.9879,'lon':-75.1957},
-};
+// ================================================
+// COLORES POR TIPO
+// ================================================
+const PAL=['#005596','#1a78c2','#0097d5','#4dd0e1','#80deea','#003f72','#0066b3','#4a90d9','#6ab4f5','#b3d9ff'];
+const PAL2=['#ef4444','#f97316','#f59e0b','#8b5cf6','#06b6d4','#ec4899','#14b8a6','#84cc16','#a78bfa','#67e8f9','#fda4af','#86efac'];
 
-const NOV_COLORS = {
-  'DIRECCION':'#3b82f6','DIRECCION Y UBICACION':'#3b82f6','DIRECCION Y COBERTURA':'#1d4ed8',
-  'RECHAZO':'#ef4444','RECHAZO DE MERCANCIA':'#dc2626',
-  'OPERATIVO':'#f59e0b','NOVEDAD OPERATIVA':'#d97706',
-  'PRODUCTO':'#8b5cf6','NOVEDAD DE PRODUCTO':'#7c3aed',
-  'PAGO':'#10b981','NOVEDAD DE PAGO':'#059669',
-  'OTROS':'#94a3b8'
-};
-
-// =============================================================
-//  HELPERS
-// =============================================================
-function fmtNum(n){ if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return String(n||0); }
-function fmtPct(n){ return isNaN(n)?'--':n.toFixed(1)+'%'; }
-function normKey(s){
-  return (s||'').toString().trim().toUpperCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/[^A-Z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
-}
-
-function detectField(cols, candidates){
-  for(var i=0;i<candidates.length;i++){
-    var n=normKey(candidates[i]);
-    var f=cols.find(function(c){ return normKey(c)===n; });
-    if(f) return f;
-  }
-  for(var i=0;i<candidates.length;i++){
-    var n=normKey(candidates[i]);
-    var f=cols.find(function(c){ return normKey(c).includes(n)||n.includes(normKey(c)); });
-    if(f) return f;
-  }
-  return null;
-}
+// ================================================
+// HELPERS
+// ================================================
+const N=s=>(s||'').toString().trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+const fmt=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(Math.round(n)||0);
+const pct=(a,b)=>b>0?(a/b*100):0;
+const fmtP=n=>isNaN(n)?'—':n.toFixed(1)+'%';
+const gv=(row,f)=>f?(row[f]||'').toString().trim():'';
 
 function detectFields(data){
   if(!data.length) return;
-  var cols = Object.keys(data[0]);
-  FIELDS.estado  = detectField(cols,['estado','estado_entrega','estado guia','resultado','status','novedad_estado']);
-  FIELDS.ciudad  = detectField(cols,['ciudad','municipio','destino','ciudad_destino','city']);
-  FIELDS.fecha   = detectField(cols,['fecha','fecha_entrega','fecha_proceso','fecha_registro','date','fecha_novedad']);
-  FIELDS.placa   = detectField(cols,['placa','conductor','vehiculo','recurso','transportador','placa_vehiculo']);
-  FIELDS.novedad = detectField(cols,['cluster_novedad','novedad','tipo_novedad','cluster','novedad_tipo','motivo_novedad']);
-  FIELDS.pe      = detectField(cols,['pe','tiempo_pe','dias_pe','dias','tiempo_proceso','promedio_pe','horas_pe']);
-  FIELDS.lat     = detectField(cols,['lat','latitud','latitude']);
-  FIELDS.lon     = detectField(cols,['lon','lng','longitud','longitude']);
-  console.log('Campos detectados:', FIELDS);
-  console.log('Columnas disponibles:', cols);
+  const cols=Object.keys(data[0]);
+  const find=(...cands)=>{
+    for(const c of cands){ const f=cols.find(x=>N(x)===N(c)); if(f) return f; }
+    for(const c of cands){ const f=cols.find(x=>N(x).includes(N(c))||N(c).includes(N(x))); if(f) return f; }
+    return null;
+  };
+  FIELDS.novedad=find('cluster_novedad','novedad','tipo_novedad','cluster','motivo','estado_novedad','novedad_tipo');
+  FIELDS.ciudad =find('ciudad','municipio','destino','ciudad_destino','city','ciudad_entrega','municipio_destino');
+  FIELDS.fecha  =find('fecha','fecha_entrega','fecha_proceso','fecha_registro','date','fecha_novedad');
+  FIELDS.placa  =find('placa','conductor','vehiculo','recurso','transportador','placa_vehiculo');
+  FIELDS.pe     =find('pe','tiempo_pe','dias_pe','dias','tiempo_proceso','horas_pe','promedio_pe');
+  console.log('%cCampos detectados','color:#005596;font-weight:bold',FIELDS);
+  const sample=[...new Set(data.slice(0,500).map(r=>gv(r,FIELDS.novedad)).filter(Boolean))].slice(0,20);
+  console.log('%cMuestra cluster_novedad','color:#ef4444',sample);
+  const cities=[...new Set(data.slice(0,200).map(r=>getCiudad(r)).filter(c=>c!=='SIN CIUDAD'))].slice(0,15);
+  console.log('%cMuestra ciudades','color:#10b981',cities);
 }
 
-function getVal(row,field){ return field?(row[field]||'').toString().trim():''; }
-function isEntregado(row){
-  var e=normKey(getVal(row,FIELDS.estado));
-  return e.includes('ENTREG')||e.includes('EXITOSO')||e.includes('EFECTIVO')||e==='OK';
-}
-function getCluster(row){
-  var v=getVal(row,FIELDS.novedad);
-  if(!v) return '';
-  return normKey(v)||'OTROS';
-}
-function getCiudad(row){ return normKey(getVal(row,FIELDS.ciudad))||'SIN CIUDAD'; }
+const getCiudad=row=>N(gv(row,FIELDS.ciudad))||'SIN CIUDAD';
+const getNov=row=>N(gv(row,FIELDS.novedad))||'SIN NOVEDAD';
+
+// Efectivo = SIN NOVEDAD (entrega exitosa, sin ningún problema)
+// ENTREGADO PREVIAMENTE también se cuenta como positivo
+const isEfect=row=>{ const v=getNov(row); return v===''||v==='SIN NOVEDAD'||v==='ENTREGADO PREVIAMENTE'; };
+const isNov=row=>{ const v=getNov(row); return v!==''&&v!=='SIN NOVEDAD'; };
+
 function getFecha(row){
-  var raw=getVal(row,FIELDS.fecha);
-  if(!raw) return null;
-  // dd/mm/yyyy or dd-mm-yyyy
-  var m=raw.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
-  if(m){
-    var y=m[3].length===2?'20'+m[3]:m[3];
-    return new Date(y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'));
-  }
-  var d=new Date(raw);
-  return isNaN(d)?null:d;
+  const raw=gv(row,FIELDS.fecha); if(!raw) return null;
+  const m=raw.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+  if(m){ const y=m[3].length===2?'20'+m[3]:m[3]; return new Date(`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`); }
+  const d=new Date(raw); return isNaN(d)?null:d;
 }
 
-// =============================================================
-//  STATE
-// =============================================================
-var state={origin:'AMBOS',ciudad:'',estado:'',fechaIni:null,fechaFin:null,search:''};
-
-function getFilteredData(){
-  var data=[];
-  if(state.origin==='NC'||state.origin==='AMBOS') rawNC.forEach(function(r){ data.push(Object.assign({},r,{_origen:'NC'})); });
-  if(state.origin==='CROSS'||state.origin==='AMBOS') rawCROSS.forEach(function(r){ data.push(Object.assign({},r,{_origen:'CROSS'})); });
-  if(state.ciudad) data=data.filter(function(r){ return getCiudad(r)===normKey(state.ciudad); });
-  if(state.estado) data=data.filter(function(r){ return normKey(getVal(r,FIELDS.estado))===normKey(state.estado); });
-  if(state.fechaIni) data=data.filter(function(r){ var d=getFecha(r); return d&&d>=state.fechaIni; });
-  if(state.fechaFin) data=data.filter(function(r){ var d=getFecha(r); return d&&d<=state.fechaFin; });
+// ================================================
+// FILTERED
+// ================================================
+function getFiltered(){
+  let data=[];
+  if(ST.nc)    RAW_NC.forEach(r=>data.push({...r,_o:'NC'}));
+  if(ST.cross) RAW_CROSS.forEach(r=>data.push({...r,_o:'CROSS'}));
+  if(ST.ciudad)  data=data.filter(r=>getCiudad(r)===ST.ciudad);
+  if(ST.novedad) data=data.filter(r=>getNov(r)===ST.novedad);
+  if(ST.fi) data=data.filter(r=>{const d=getFecha(r);return d&&d>=ST.fi;});
+  if(ST.ff) data=data.filter(r=>{const d=getFecha(r);return d&&d<=ST.ff;});
   return data;
 }
 
 function calcKPIs(data){
-  var total=data.length;
-  var efectivos=data.filter(isEntregado).length;
-  var pct=total>0?(efectivos/total)*100:0;
-  var recursos=new Set(data.map(function(r){ return getVal(r,FIELDS.placa); }).filter(Boolean));
-  var peVals=data.map(function(r){ var v=parseFloat(getVal(r,FIELDS.pe)); return isNaN(v)?null:v; }).filter(function(v){ return v!==null; });
-  var avgPE=peVals.length?peVals.reduce(function(a,b){ return a+b; },0)/peVals.length:null;
-  var novCount=data.filter(function(r){ return getCluster(r)&&getCluster(r)!=='OTROS'; }).length;
-  return {total:total,efectivos:efectivos,pct:pct,recursos:recursos.size,avgPE:avgPE,novCount:novCount};
+  const total=data.length;
+  const efectivos=data.filter(isEfect).length;
+  const conNov=data.filter(isNov).length;
+  const recursos=new Set(data.map(r=>gv(r,FIELDS.placa)).filter(Boolean));
+  const peVals=data.map(r=>parseFloat(gv(r,FIELDS.pe))).filter(v=>!isNaN(v)&&v>0);
+  const avgPE=peVals.length?peVals.reduce((a,b)=>a+b,0)/peVals.length:null;
+  return {total,efectivos,conNov,pctEfect:pct(efectivos,total),recursos:recursos.size,avgPE};
 }
 
-// =============================================================
-//  CHART BUILDERS
-// =============================================================
-function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+// ================================================
+// CHART UTILS
+// ================================================
+const dc=id=>{if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}};
 
-function buildTrendChart(canvasId, data){
-  destroyChart(canvasId);
-  var groups={};
-  data.forEach(function(r){
-    var d=getFecha(r); if(!d) return;
-    var key=(d.getFullYear())+'-'+(String(d.getMonth()+1).padStart(2,'0'));
-    if(!groups[key]) groups[key]={total:0,ent:0};
-    groups[key].total++;
-    if(isEntregado(r)) groups[key].ent++;
-  });
-  var keys=Object.keys(groups).sort();
-  if(!keys.length) return;
-  var pcts=keys.map(function(k){ return groups[k].total>0?(groups[k].ent/groups[k].total*100):0; });
-  var totals=keys.map(function(k){ return groups[k].total; });
-  var ctx=document.getElementById(canvasId).getContext('2d');
-  charts[canvasId]=new Chart(ctx,{
-    type:'line',
-    data:{
-      labels:keys,
-      datasets:[
-        {label:'% Efectividad',data:pcts,borderColor:'#005596',backgroundColor:'rgba(0,85,150,.08)',fill:true,tension:.4,pointBackgroundColor:'#005596',pointRadius:4,yAxisID:'y'},
-        {label:'Guias',data:totals,borderColor:'#FFD100',backgroundColor:'rgba(255,209,0,.08)',fill:true,tension:.4,pointBackgroundColor:'#FFD100',pointRadius:4,yAxisID:'y1',borderDash:[4,3]}
-      ]
-    },
-    options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
-      scales:{y:{beginAtZero:true,max:100,ticks:{callback:function(v){return v+'%';},font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},
-              y1:{position:'right',beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{display:false}},
-              x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}}}
-  });
-}
-
-function buildCityChart(canvasId, data, topN){
-  topN=topN||8;
-  destroyChart(canvasId);
-  var counts={};
-  data.forEach(function(r){ var c=getCiudad(r); counts[c]=(counts[c]||0)+1; });
-  delete counts['SIN CIUDAD'];
-  var sorted=Object.entries(counts).sort(function(a,b){ return b[1]-a[1]; }).slice(0,topN);
-  if(!sorted.length) return;
-  var palette=['#005596','#1a78c2','#0097d5','#00bcd4','#4dd0e1','#80deea','#b2ebf2','#e0f7fa','#FFD100','#fde68a'];
-  var ctx=document.getElementById(canvasId).getContext('2d');
-  charts[canvasId]=new Chart(ctx,{
+function mkBarH(id,labels,vals,colors,pctAxis=false){
+  dc(id); const ctx=document.getElementById(id); if(!ctx) return;
+  CHARTS[id]=new Chart(ctx.getContext('2d'),{
     type:'bar',
-    data:{labels:sorted.map(function(x){ return x[0].slice(0,16); }),
-          datasets:[{label:'Guias',data:sorted.map(function(x){ return x[1]; }),backgroundColor:palette,borderRadius:6,borderSkipped:false}]},
-    options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
-      scales:{x:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>pctAxis?` ${c.raw.toFixed(1)}%`:` ${fmt(c.raw)}`}}},
+      scales:{x:{beginAtZero:true,...(pctAxis?{max:100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}}}:{ticks:{font:{family:'DM Mono',size:10}}}),grid:{color:'#f1f5f9'}},
               y:{ticks:{font:{family:'DM Sans',size:11}},grid:{display:false}}}}
   });
 }
 
-function buildMixChart(canvasId, data){
-  destroyChart(canvasId);
-  var nc=data.filter(function(r){ return r._origen==='NC'; }).length;
-  var cross=data.filter(function(r){ return r._origen==='CROSS'; }).length;
-  if(!nc&&!cross) return;
-  var ctx=document.getElementById(canvasId).getContext('2d');
-  charts[canvasId]=new Chart(ctx,{
+function mkBarV(id,labels,datasets){
+  dc(id); const ctx=document.getElementById(id); if(!ctx) return;
+  CHARTS[id]=new Chart(ctx.getContext('2d'),{
+    type:'bar',data:{labels,datasets},
+    options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+      scales:{x:{ticks:{font:{family:'DM Sans',size:11}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+  });
+}
+
+function mkLine(id,labels,datasets,pctY=true){
+  dc(id); const ctx=document.getElementById(id); if(!ctx) return;
+  CHARTS[id]=new Chart(ctx.getContext('2d'),{
+    type:'line',data:{labels,datasets},
+    options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+      scales:{
+        y:{beginAtZero:true,...(pctY?{max:100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}}}:{ticks:{font:{family:'DM Mono',size:10}}}),grid:{color:'#f1f5f9'}},
+        y1:{position:'right',beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{display:false}},
+        x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}
+      }}
+  });
+}
+
+function mkDonut(id,labels,vals,colors){
+  dc(id); const ctx=document.getElementById(id); if(!ctx) return;
+  CHARTS[id]=new Chart(ctx.getContext('2d'),{
     type:'doughnut',
-    data:{labels:['No Centralizado','Crossdocking'],
-          datasets:[{data:[nc,cross],backgroundColor:['#005596','#FFD100'],borderWidth:0,hoverOffset:6}]},
-    options:{responsive:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}}}
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:0,hoverOffset:8}]},
+    options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:10},boxWidth:10}}}}
   });
 }
 
-function buildEstadoChart(canvasId, data){
-  destroyChart(canvasId);
-  var counts={};
-  data.forEach(function(r){ var e=normKey(getVal(r,FIELDS.estado))||'SIN ESTADO'; counts[e]=(counts[e]||0)+1; });
-  var sorted=Object.entries(counts).sort(function(a,b){ return b[1]-a[1]; });
-  if(!sorted.length) return;
-  var ctx=document.getElementById(canvasId).getContext('2d');
-  charts[canvasId]=new Chart(ctx,{
+// ================================================
+// BUILD GENERAL
+// ================================================
+function buildTrend(data){
+  const g={};
+  data.forEach(r=>{const d=getFecha(r);if(!d)return;const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(!g[k])g[k]={t:0,e:0};g[k].t++;if(isEfect(r))g[k].e++;});
+  const keys=Object.keys(g).sort(); if(!keys.length) return;
+  mkLine('ch-trend',keys,[
+    {label:'% Efectividad',data:keys.map(k=>pct(g[k].e,g[k].t)),borderColor:'#005596',backgroundColor:'rgba(0,85,150,.08)',fill:true,tension:.4,pointRadius:4,yAxisID:'y'},
+    {label:'Guías',data:keys.map(k=>g[k].t),borderColor:'#FFD100',borderDash:[4,3],backgroundColor:'rgba(255,209,0,.06)',fill:true,tension:.4,pointRadius:3,yAxisID:'y1'}
+  ]);
+}
+
+function buildMix(data){
+  const nc=data.filter(r=>r._o==='NC').length, cr=data.filter(r=>r._o==='CROSS').length;
+  mkDonut('ch-mix',['No Centralizado','Crossdocking'],[nc,cr],['#005596','#FFD100']);
+}
+
+function buildCiudadVol(data){
+  const c={};
+  data.forEach(r=>{const x=getCiudad(r);if(x!=='SIN CIUDAD')c[x]=(c[x]||0)+1;});
+  const top=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10); if(!top.length) return;
+  mkBarH('ch-ciudad',top.map(x=>x[0].slice(0,16)),top.map(x=>x[1]),PAL);
+}
+
+function buildCiudadEfect(data){
+  const c={},e={};
+  data.forEach(r=>{const x=getCiudad(r);if(x==='SIN CIUDAD')return;c[x]=(c[x]||0)+1;if(isEfect(r))e[x]=(e[x]||0)+1;});
+  const top=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10); if(!top.length) return;
+  const vals=top.map(x=>pct(e[x[0]]||0,x[1]));
+  mkBarH('ch-ciudad-efect',top.map(x=>x[0].slice(0,16)),vals,vals.map(v=>v>=90?'#10b981':v>=70?'#f59e0b':'#ef4444'),true);
+}
+
+function buildNovBar(data){
+  const c={};
+  data.forEach(r=>{const n=getNov(r);c[n]=(c[n]||0)+1;});
+  const sorted=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,16); if(!sorted.length) return;
+  const colors=sorted.map(([k])=>k==='SIN NOVEDAD'?'#10b981':k==='ENTREGADO PREVIAMENTE'?'#06b6d4':'#ef4444');
+  dc('ch-nov-bar'); const ctx=document.getElementById('ch-nov-bar'); if(!ctx) return;
+  CHARTS['ch-nov-bar']=new Chart(ctx.getContext('2d'),{
     type:'bar',
-    data:{labels:sorted.map(function(x){ return x[0].slice(0,20); }),
-          datasets:[{label:'Guias',data:sorted.map(function(x){ return x[1]; }),
-            backgroundColor:sorted.map(function(x){
-              var k=x[0];
-              return (k.includes('ENTREG')||k.includes('EFECTIV'))?'#10b981':(k.includes('RECHAZ')||k.includes('DEVOL'))?'#ef4444':'#94a3b8';
-            }),borderRadius:5,borderSkipped:false}]},
-    options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},
-      scales:{x:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},
-              y:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}}}
+    data:{labels:sorted.map(x=>x[0].slice(0,30)),datasets:[{data:sorted.map(x=>x[1]),backgroundColor:colors,borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} guías`}}},
+      scales:{x:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},y:{ticks:{font:{family:'DM Sans',size:11}},grid:{display:false}}}}
   });
 }
 
+// ================================================
+// BUILD NOVEDADES
+// ================================================
 function buildNovDonut(data){
-  destroyChart('nov-donut');
-  var counts={};
-  data.filter(function(r){ return getCluster(r); }).forEach(function(r){
-    var c=getCluster(r); if(!c) return;
-    counts[c]=(counts[c]||0)+1;
-  });
-  var entries=Object.entries(counts).sort(function(a,b){ return b[1]-a[1]; });
+  // Solo novedades reales (excluye SIN NOVEDAD y ENTREGADO PREVIAMENTE)
+  const c={};
+  data.filter(isNov).forEach(r=>{const n=getNov(r);if(n)c[n]=(c[n]||0)+1;});
+  const entries=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,12);
+
   if(!entries.length){
-    var el=document.getElementById('nov-donut');
-    if(el) el.parentElement.innerHTML='<div class="no-data-msg">Sin datos de novedades</div>';
-    return;
+    const el=document.getElementById('ch-nov-donut');
+    if(el&&el.parentElement) el.parentElement.innerHTML='<div class="empty">Sin guías con novedad en la selección</div>';
+  } else {
+    mkDonut('ch-nov-donut',entries.map(x=>x[0].slice(0,24)),entries.map(x=>x[1]),PAL2.slice(0,entries.length));
   }
-  var ctx=document.getElementById('nov-donut').getContext('2d');
-  var colors=entries.map(function(e){ return NOV_COLORS[e[0]]||'#94a3b8'; });
-  charts['nov-donut']=new Chart(ctx,{
-    type:'doughnut',
-    data:{labels:entries.map(function(e){ return e[0]; }),
-          datasets:[{data:entries.map(function(e){ return e[1]; }),backgroundColor:colors,borderWidth:0,hoverOffset:8}]},
-    options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}}}
-  });
-  var total=entries.reduce(function(s,e){ return s+e[1]; },0);
-  var listEl=document.getElementById('nov-list');
-  if(listEl) listEl.innerHTML=entries.map(function(e){
-    var k=e[0],v=e[1];
-    var pct=(v/total*100).toFixed(1);
-    var color=NOV_COLORS[k]||'#94a3b8';
-    return '<div class="nov-row"><div class="nov-dot" style="background:'+color+'"></div><div class="nov-label">'+k+'</div><div class="nov-count">'+fmtNum(v)+'</div><div class="nov-pct">'+pct+'%</div></div><div class="nov-bar-bg"><div class="nov-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div>';
+
+  // Lista completa con TODOS los valores
+  const all={};
+  data.forEach(r=>{const n=getNov(r);all[n]=(all[n]||0)+1;});
+  const allE=Object.entries(all).sort((a,b)=>b[1]-a[1]);
+  const total=data.length;
+  const listEl=document.getElementById('nov-list-all'); if(!listEl) return;
+  listEl.innerHTML=allE.map(([k,v],i)=>{
+    const p=(v/total*100).toFixed(1);
+    const color=k==='SIN NOVEDAD'?'#10b981':k==='ENTREGADO PREVIAMENTE'?'#06b6d4':PAL2[i%PAL2.length];
+    return `<div class="nov-row">
+      <div class="nov-dot" style="background:${color}"></div>
+      <div class="nov-lbl" title="${k}">${k}</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${p}%;background:${color}"></div></div>
+      <div class="nov-cnt">${fmt(v)}</div>
+      <div class="nov-pct">${p}%</div>
+    </div>`;
   }).join('');
 }
 
-function buildNovCiudadChart(data){
-  destroyChart('nov-ciudad-chart');
-  var counts={};
-  data.filter(function(r){ return getCluster(r); }).forEach(function(r){
-    var c=getCiudad(r); counts[c]=(counts[c]||0)+1;
-  });
-  delete counts['SIN CIUDAD'];
-  var sorted=Object.entries(counts).sort(function(a,b){ return b[1]-a[1]; }).slice(0,10);
-  if(!sorted.length) return;
-  var ctx=document.getElementById('nov-ciudad-chart').getContext('2d');
-  charts['nov-ciudad-chart']=new Chart(ctx,{
+function buildNovCiudad(data){
+  const c={};
+  data.filter(isNov).forEach(r=>{const x=getCiudad(r);if(x!=='SIN CIUDAD')c[x]=(c[x]||0)+1;});
+  const top=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10); if(!top.length) return;
+  dc('ch-nov-ciudad'); const ctx=document.getElementById('ch-nov-ciudad'); if(!ctx) return;
+  CHARTS['ch-nov-ciudad']=new Chart(ctx.getContext('2d'),{
     type:'bar',
-    data:{labels:sorted.map(function(x){ return x[0].slice(0,14); }),
-          datasets:[{label:'Novedades',data:sorted.map(function(x){ return x[1]; }),backgroundColor:'#ef4444',borderRadius:5}]},
-    options:{responsive:true,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}},
-              y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+    data:{labels:top.map(x=>x[0].slice(0,14)),datasets:[{label:'Novedades',data:top.map(x=>x[1]),backgroundColor:'#ef4444',borderRadius:5}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
   });
 }
 
-// =============================================================
-//  MAP
-// =============================================================
-var mapMarkers=[];
+function buildNovOrigen(data){
+  const nc=data.filter(r=>r._o==='NC'), cr=data.filter(r=>r._o==='CROSS');
+  mkBarV('ch-nov-origen',['NC','CROSS'],[
+    {label:'Con Novedad',data:[nc.filter(isNov).length,cr.filter(isNov).length],backgroundColor:['#ef4444','#f97316'],borderRadius:5},
+    {label:'Sin Novedad',data:[nc.filter(isEfect).length,cr.filter(isEfect).length],backgroundColor:['#10b981','#06b6d4'],borderRadius:5}
+  ]);
+}
+
+function buildNovTrend(data){
+  const g={};
+  data.forEach(r=>{const d=getFecha(r);if(!d)return;const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(!g[k])g[k]={t:0,n:0};g[k].t++;if(isNov(r))g[k].n++;});
+  const keys=Object.keys(g).sort(); if(!keys.length) return;
+  dc('ch-nov-trend'); const ctx=document.getElementById('ch-nov-trend'); if(!ctx) return;
+  CHARTS['ch-nov-trend']=new Chart(ctx.getContext('2d'),{
+    type:'line',data:{labels:keys,datasets:[{label:'% Con Novedad',data:keys.map(k=>pct(g[k].n,g[k].t)),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.08)',fill:true,tension:.4,pointRadius:4}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}}}
+  });
+}
+
+// ================================================
+// MAPA
+// ================================================
 function buildMap(data){
-  if(!mapInstance){
-    mapInstance=L.map('map').setView([4.5709,-74.2973],6);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
-      attribution:'(c) CARTO',subdomains:'abcd',maxZoom:19
-    }).addTo(mapInstance);
+  if(!MAP_INST){
+    MAP_INST=L.map('map').setView([4.57,-74.30],6);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© CARTO',subdomains:'abcd',maxZoom:19}).addTo(MAP_INST);
   }
-  mapMarkers.forEach(function(m){ mapInstance.removeLayer(m); });
-  mapMarkers=[];
+  MAP_LAYERS.forEach(l=>MAP_INST.removeLayer(l)); MAP_LAYERS=[];
 
-  var cityCounts={}, cityEnt={};
-  data.forEach(function(r){
-    var c=getCiudad(r);
-    cityCounts[c]=(cityCounts[c]||0)+1;
-    if(isEntregado(r)) cityEnt[c]=(cityEnt[c]||0)+1;
+  const c={},e={},nv={},nc={},cr={};
+  data.forEach(r=>{
+    const city=getCiudad(r); if(city==='SIN CIUDAD') return;
+    c[city]=(c[city]||0)+1;
+    if(isEfect(r)) e[city]=(e[city]||0)+1;
+    if(isNov(r))   nv[city]=(nv[city]||0)+1;
+    if(r._o==='NC') nc[city]=(nc[city]||0)+1; else cr[city]=(cr[city]||0)+1;
   });
 
-  Object.entries(cityCounts).forEach(function(entry){
-    var city=entry[0], cnt=entry[1];
-    var coords=CITY_COORDS[city];
+  const maxV=Math.max(...Object.values(c),1);
+  let mapped=0;
+
+  Object.entries(c).forEach(([city,cnt])=>{
+    // Try exact match, then normalized
+    const coords=COORDS[city]||COORDS[N(city).replace(/\s+/g,' ')];
     if(!coords) return;
-    var eff=cityEnt[city]?((cityEnt[city]/cnt)*100).toFixed(1):0;
-    var radius=Math.max(8000,Math.min(80000,cnt*250));
-    var color=eff>=90?'#10b981':eff>=70?'#f59e0b':'#ef4444';
-    var circle=L.circle([coords.lat,coords.lon],{radius:radius,fillColor:color,fillOpacity:.45,color:color,weight:1,opacity:.7}).addTo(mapInstance);
-    circle.bindPopup('<div style="font-family:DM Sans,sans-serif;min-width:140px"><b style="font-size:13px;color:#005596">'+city+'</b><br><span style="font-size:12px">Guias: '+cnt+'</span><br><span style="font-size:12px">Efectividad: '+eff+'%</span></div>');
-    mapMarkers.push(circle);
+    mapped++;
+    const ef=pct(e[city]||0,cnt);
+    const radius=Math.max(7000,Math.min(85000,(cnt/maxV)*80000+7000));
+    const color=ef>=90?'#10b981':ef>=70?'#f59e0b':'#ef4444';
+    const circle=L.circle([coords.lat,coords.lng],{radius,fillColor:color,fillOpacity:.45,color,weight:1.5,opacity:.8}).addTo(MAP_INST);
+    circle.bindPopup(`<div style="font-family:'DM Sans',sans-serif;min-width:165px">
+      <b style="color:#005596;font-size:13px">${city}</b><br>
+      <span>📦 <b>${cnt}</b> guías totales</span><br>
+      <span>✅ <b>${ef.toFixed(1)}%</b> efectividad</span><br>
+      <span>⚠️ <b>${nv[city]||0}</b> con novedad</span><br>
+      <span style="font-size:11px;color:#64748b">NC: ${nc[city]||0} · CROSS: ${cr[city]||0}</span>
+    </div>`);
+    MAP_LAYERS.push(circle);
   });
+  console.log(`Mapa: ${mapped} ciudades con coordenadas de ${Object.keys(c).length} totales`);
+  if(mapped===0) console.warn('Ciudades sin coordenadas:',[...Object.keys(c)].slice(0,10));
 
-  var tbody=document.getElementById('map-table-body');
-  if(!tbody) return;
-  var sorted=Object.entries(cityCounts).sort(function(a,b){ return b[1]-a[1]; });
-  tbody.innerHTML=sorted.map(function(entry){
-    var city=entry[0],cnt=entry[1];
-    var eff=cityEnt[city]?((cityEnt[city]/cnt)*100):0;
-    var semClass=eff>=90?'sem-green':eff>=70?'sem-yellow':'sem-red';
-    var novCount=data.filter(function(r){ return getCiudad(r)===city&&getCluster(r); }).length;
-    return '<tr><td>'+city+'</td><td style="font-family:DM Mono,monospace">'+cnt+'</td><td style="font-family:DM Mono,monospace">'+(cityEnt[city]||0)+'</td><td><span class="semaphore '+semClass+'"></span> '+eff.toFixed(1)+'%</td><td style="font-family:DM Mono,monospace">'+novCount+'</td></tr>';
+  // Tabla resumen
+  const tbody=document.getElementById('map-tbody'); if(!tbody) return;
+  tbody.innerHTML=Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([city,cnt])=>{
+    const ef=pct(e[city]||0,cnt);
+    const sc=ef>=90?'s-g':ef>=70?'s-y':'s-r';
+    const bc=ef>=90?'b-green':ef>=70?'b-yellow':'b-red';
+    return `<tr>
+      <td><span class="sem ${sc}"></span>${city}</td>
+      <td style="font-family:'DM Mono',monospace">${cnt}</td>
+      <td style="font-family:'DM Mono',monospace">${e[city]||0}</td>
+      <td><span class="badge ${bc}">${ef.toFixed(1)}%</span></td>
+      <td style="font-family:'DM Mono',monospace;color:#ef4444">${nv[city]||0}</td>
+      <td style="font-family:'DM Mono',monospace">${nc[city]||0}</td>
+      <td style="font-family:'DM Mono',monospace">${cr[city]||0}</td>
+    </tr>`;
   }).join('');
 }
 
-// =============================================================
-//  DETAIL TABLE
-// =============================================================
-function buildDetailTable(data){
-  detailData=data.slice();
-  if(state.search){
-    var q=normKey(state.search);
-    detailData=detailData.filter(function(r){ return Object.values(r).some(function(v){ return normKey(String(v)).includes(q); }); });
+// ================================================
+// DETALLE
+// ================================================
+function buildDetail(data){
+  DET_DATA=data.slice();
+  if(ST.search){
+    const q=N(ST.search);
+    DET_DATA=DET_DATA.filter(r=>Object.values(r).some(v=>N(String(v)).includes(q)));
   }
-  document.getElementById('detail-count').textContent=detailData.length.toLocaleString('es-CO')+' registros';
-  currentPage=1;
-  renderDetailPage();
+  document.getElementById('det-count').textContent=`${DET_DATA.length.toLocaleString('es-CO')} registros`;
+  DET_PAGE=1; renderDetail();
 }
 
-function renderDetailPage(){
-  var start=(currentPage-1)*PAGE_SIZE;
-  var page=detailData.slice(start,start+PAGE_SIZE);
+function renderDetail(){
+  const start=(DET_PAGE-1)*PG;
+  const page=DET_DATA.slice(start,start+PG);
   if(!page.length){
-    document.getElementById('detail-thead').innerHTML='';
-    document.getElementById('detail-tbody').innerHTML='<tr><td colspan="10" class="no-data-msg">Sin datos</td></tr>';
-    document.getElementById('pagination').innerHTML='';
-    return;
+    document.getElementById('det-head').innerHTML='';
+    document.getElementById('det-body').innerHTML='<tr><td colspan="13" class="empty">Sin datos para mostrar</td></tr>';
+    document.getElementById('pgn').innerHTML=''; return;
   }
-  var allCols=Object.keys(page[0]).filter(function(c){ return c!=='_origen'; }).slice(0,10);
-  document.getElementById('detail-thead').innerHTML='<tr>'+allCols.map(function(c){ return '<th>'+c+'</th>'; }).join('')+'</tr>';
-  document.getElementById('detail-tbody').innerHTML=page.map(function(row){
-    return '<tr>'+allCols.map(function(c){
-      var val=(row[c]||'').toString().trim();
-      if(c===FIELDS.estado){
-        var eff=isEntregado(row);
-        return '<td><span class="badge '+(eff?'badge-green':'badge-red')+'">'+( val||'--')+'</span></td>';
+  const cols=Object.keys(page[0]).filter(c=>c!=='_o').slice(0,12);
+  document.getElementById('det-head').innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'<th>Origen</th></tr>';
+  document.getElementById('det-body').innerHTML=page.map(row=>{
+    return '<tr>'+cols.map(c=>{
+      const v=(row[c]||'').toString().trim();
+      if(c===FIELDS.novedad){
+        const nv=N(v); const cls=nv===''||nv==='SIN NOVEDAD'?'b-green':nv==='ENTREGADO PREVIAMENTE'?'b-blue':'b-red';
+        return `<td><span class="badge ${cls}">${v||'SIN NOVEDAD'}</span></td>`;
       }
-      return '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+val+'">'+( val||'--')+'</td>';
-    }).join('')+'</tr>';
+      return `<td title="${v}">${v||'—'}</td>`;
+    }).join('')+`<td><span class="badge ${row._o==='NC'?'b-gray':'b-yellow'}">${row._o}</span></td></tr>`;
   }).join('');
 
-  var totalPages=Math.ceil(detailData.length/PAGE_SIZE);
-  var paginEl=document.getElementById('pagination');
-  var html='';
-  for(var i=1;i<=Math.min(totalPages,10);i++){
-    html+='<button class="page-btn '+(i===currentPage?'active':'')+'" data-p="'+i+'">'+i+'</button>';
-  }
-  if(totalPages>10) html+='<span style="color:var(--col-muted);padding:0 4px">...</span><button class="page-btn '+(totalPages===currentPage?'active':'')+'" data-p="'+totalPages+'">'+totalPages+'</button>';
-  paginEl.innerHTML=html;
-  document.querySelectorAll('.page-btn').forEach(function(btn){
-    btn.addEventListener('click',function(){ currentPage=+btn.dataset.p; renderDetailPage(); });
-  });
+  const tot=Math.ceil(DET_DATA.length/PG);
+  let pages=[]; for(let i=1;i<=tot;i++){ if(i===1||i===tot||Math.abs(i-DET_PAGE)<=2) pages.push(i); else if(Math.abs(i-DET_PAGE)===3) pages.push('…'); }
+  pages=[...new Set(pages)];
+  document.getElementById('pgn').innerHTML=pages.map(p=>p==='…'?`<span style="color:var(--muted);padding:0 3px">…</span>`:`<button class="pg-btn ${p===DET_PAGE?'on':''}" data-p="${p}">${p}</button>`).join('');
+  document.querySelectorAll('.pg-btn').forEach(b=>b.addEventListener('click',()=>{DET_PAGE=+b.dataset.p;renderDetail();}));
 }
 
-// =============================================================
-//  UPDATE ALL COMPONENTS
-// =============================================================
-function updateDashboard(){
-  var data=getFilteredData();
-  var kpis=calcKPIs(data);
-  document.getElementById('total-registros').textContent=data.length.toLocaleString('es-CO')+' registros';
-  document.getElementById('last-update').textContent=new Date().toLocaleTimeString('es-CO');
-
-  function setKPI(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
-  var peStr=kpis.avgPE!==null?kpis.avgPE.toFixed(1):'--';
-
-  ['h','g'].forEach(function(p){
-    setKPI(p+'-kpi-total',fmtNum(kpis.total));
-    setKPI(p+'-kpi-efectivos',fmtNum(kpis.efectivos));
-    setKPI(p+'-kpi-efect-pct',fmtPct(kpis.pct));
-    setKPI(p+'-kpi-prom-pe',peStr);
-    setKPI(p+'-kpi-recursos',fmtNum(kpis.recursos));
-    setKPI(p+'-kpi-novedades',fmtNum(kpis.novCount));
-  });
-  setKPI('hs-guias',fmtNum(kpis.total));
-  setKPI('hs-efectividad',fmtPct(kpis.pct));
-  setKPI('hs-recursos',fmtNum(kpis.recursos));
-
-  buildTrendChart('home-trend-chart',data);
-  buildTrendChart('trend-chart',data);
-  buildCityChart('home-city-chart',data,8);
-  buildCityChart('city-chart',data,10);
-  buildMixChart('mix-chart',data);
-  buildEstadoChart('estado-chart',data);
-  buildNovDonut(data);
-  buildNovCiudadChart(data);
-  buildMap(data);
-  buildDetailTable(data);
-}
-
-// =============================================================
-//  POPULATE FILTERS
-// =============================================================
+// ================================================
+// POPULATE FILTERS
+// ================================================
 function populateFilters(data){
-  var cities=[...new Set(data.map(getCiudad).filter(function(c){ return c&&c!=='SIN CIUDAD'; }))].sort();
-  var estados=[...new Set(data.map(function(r){ return normKey(getVal(r,FIELDS.estado)); }).filter(Boolean))].sort();
-  document.getElementById('filter-ciudad').innerHTML='<option value="">Todas las ciudades</option>'+cities.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
-  document.getElementById('filter-estado').innerHTML='<option value="">Todos los estados</option>'+estados.map(function(e){ return '<option value="'+e+'">'+e+'</option>'; }).join('');
+  const cities=[...new Set(data.map(getCiudad).filter(c=>c&&c!=='SIN CIUDAD'))].sort();
+  const novs=[...new Set(data.map(r=>getNov(r)).filter(Boolean))].sort();
+  document.getElementById('f-ciudad').innerHTML='<option value="">Todas las ciudades</option>'+cities.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('f-novedad').innerHTML='<option value="">Todas las novedades</option>'+novs.map(n=>`<option value="${n}">${n}</option>`).join('');
 }
 
-// =============================================================
-//  DATA FETCHING — BROWSER-SIDE, MULTI-PROXY, MULTI-GID
-// =============================================================
-function updateProgress(pct){ var el=document.getElementById('progress-bar'); if(el) el.style.width=pct+'%'; }
-function setLoaderMsg(msg){
-  var el=document.querySelector('.loader-text'); if(el) el.textContent='Cargando datos logisticos...';
-  var det=document.getElementById('loader-detail'); if(det) det.textContent=msg;
+// ================================================
+// UPDATE ALL
+// ================================================
+function update(){
+  const data=getFiltered();
+  const k=calcKPIs(data);
+  document.getElementById('rec-count').textContent=`${data.length.toLocaleString('es-CO')} registros`;
+  document.getElementById('hdr-update').textContent=new Date().toLocaleTimeString('es-CO');
+  const S=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  S('kpi-total',fmt(k.total)); S('kpi-efect',fmt(k.efectivos)); S('kpi-pct',fmtP(k.pctEfect));
+  S('kpi-pe',k.avgPE!==null?k.avgPE.toFixed(1):'—'); S('kpi-rec',fmt(k.recursos)); S('kpi-nov',fmt(k.conNov));
+  S('hs-guias',fmt(k.total)); S('hs-efect',fmtP(k.pctEfect)); S('hs-rec',fmt(k.recursos));
+  buildTrend(data); buildMix(data); buildCiudadVol(data); buildCiudadEfect(data); buildNovBar(data);
+  buildNovDonut(data); buildNovCiudad(data); buildNovOrigen(data); buildNovTrend(data);
+  buildMap(data); buildDetail(data);
 }
 
-function parseCSVText(text){
-  if(!text||text.trim().length<10) return [];
-  if(text.trim().startsWith('<')) return [];   // HTML error page
-  var result=Papa.parse(text,{header:true,skipEmptyLines:true,dynamicTyping:false});
-  return result.data||[];
-}
+// ================================================
+// FETCH
+// ================================================
+const setP=n=>{const e=document.getElementById('prog-bar');if(e)e.style.width=n+'%';};
+const setSub=t=>{const e=document.getElementById('loader-sub');if(e)e.textContent=t;};
 
 function fetchText(url){
-  return fetch(url,{mode:'cors',credentials:'omit'})
-    .then(function(res){
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      return res.text();
-    });
+  return fetch(url,{mode:'cors',credentials:'omit'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();});
 }
 
-function fetchWithProxies(rawUrl){
-  var i=0;
-  function tryNext(){
-    if(i>=PROXY_FNS.length) return Promise.resolve([]);
-    var proxied=PROXY_FNS[i](rawUrl);
-    i++;
-    return fetchText(proxied)
-      .then(function(text){
-        var rows=parseCSVText(text);
-        if(rows.length>0){ console.log('OK proxy '+(i-1)+' -> '+rows.length+' rows for '+rawUrl.slice(-30)); return rows; }
-        return tryNext();
-      })
-      .catch(function(e){ console.warn('Proxy '+(i-1)+' failed:',e.message); return tryNext(); });
-  }
-  return tryNext();
+function tryProxies(rawUrl){
+  let i=0;
+  const next=()=>{
+    if(i>=PROXIES.length) return Promise.resolve([]);
+    const url=PROXIES[i++](rawUrl);
+    setSub(`Proxy ${i}/${PROXIES.length}: ${rawUrl.slice(-35)}`);
+    return fetchText(url).then(txt=>{
+      if(txt.trim().startsWith('<')){console.warn('Proxy',i-1,'devolvió HTML');return next();}
+      const rows=Papa.parse(txt,{header:true,skipEmptyLines:true}).data;
+      if(rows.length>0){console.log(`Proxy ${i-1} OK → ${rows.length} filas`);return rows;}
+      return next();
+    }).catch(e=>{console.warn(`Proxy ${i-1} error:`,e.message);return next();});
+  };
+  return next();
 }
 
-// Fingerprint a dataset (first row values joined) to detect duplicate sheet
-function fingerprint(rows){
-  if(!rows.length) return '';
-  return Object.values(rows[0]).slice(0,5).join('|');
-}
-
-function discoverCrossSheet(ncFingerprint){
-  var idx=0;
-  function tryNext(){
-    if(idx>=CROSS_GIDS.length) return Promise.resolve([]);
-    var gid=CROSS_GIDS[idx]; idx++;
-    var url=BASE_PUB+'?gid='+gid+'&output=csv';
-    setLoaderMsg('Buscando hoja CROSS (gid='+gid+')...');
-    return fetchWithProxies(url).then(function(rows){
-      if(rows.length>0){
-        var fp=fingerprint(rows);
-        if(fp!==ncFingerprint){
-          console.log('CROSS sheet encontrada! gid='+gid+', rows='+rows.length);
-          return rows;
-        } else {
-          console.log('gid='+gid+' es igual a NC, continuo...');
-          return tryNext();
-        }
-      }
-      return tryNext();
-    }).catch(function(){ return tryNext(); });
-  }
-  return tryNext();
-}
-
-function showErrorScreen(){
-  document.getElementById('loader').innerHTML=
-    '<div style="text-align:center;padding:32px 24px;font-family:DM Sans,sans-serif;max-width:500px">'+
-    '<div style="font-size:48px;margin-bottom:12px">🔒</div>'+
-    '<div style="font-size:17px;font-weight:700;color:#1e293b;margin-bottom:8px">No se pudieron cargar los datos</div>'+
-    '<div style="font-size:13px;color:#64748b;margin-bottom:20px;line-height:1.7">'+
-    'Para que el dashboard lea la hoja, el Google Sheet debe estar <b>publicado en la web</b>.<br>'+
-    '<b>Archivo → Compartir → Publicar en la web → seleccionar hoja → CSV → Publicar</b>'+
-    '</div>'+
-    '<div style="margin-bottom:14px;text-align:left">'+
-    '<label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">URL CSV hoja DATA NC</label>'+
-    '<input id="manual-nc" value="'+URL_NC+'" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:DM Sans,sans-serif"/>'+
-    '</div>'+
-    '<div style="margin-bottom:20px;text-align:left">'+
-    '<label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;text-transform:uppercase">URL CSV hoja DATA CROSS</label>'+
-    '<input id="manual-cross" value="'+URL_CROSS+'" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:DM Sans,sans-serif"/>'+
-    '<div style="font-size:11px;color:#94a3b8;margin-top:4px">Abre la hoja CROSS en Sheets, ve a Archivo > Publicar en la web, selecciona esa hoja y copia la URL CSV</div>'+
-    '</div>'+
-    '<div style="display:flex;gap:8px;justify-content:center">'+
-    '<button onclick="retryManual()" style="padding:10px 24px;background:#005596;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif">Reintentar</button>'+
-    '<button onclick="loadOnlyNC()" style="padding:10px 20px;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:DM Sans,sans-serif">Solo cargar NC</button>'+
-    '</div></div>';
+function showError(){
+  document.getElementById('loader').innerHTML=`
+  <div style="text-align:center;padding:28px 20px;font-family:'DM Sans',sans-serif;max-width:500px">
+    <div style="font-size:42px;margin-bottom:10px">🔒</div>
+    <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:8px">No se pudieron cargar los datos</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:18px;line-height:1.7">
+      El Google Sheet debe estar <b>publicado en la web</b> como CSV.<br>
+      Confirma en: <b>Archivo → Compartir → Publicar en la web → Hoja → CSV</b>
+    </div>
+    <div style="margin-bottom:10px;text-align:left">
+      <label style="font-size:10px;font-weight:700;color:#64748b;display:block;margin-bottom:3px;text-transform:uppercase">URL hoja NC (gid=0)</label>
+      <input id="m-nc" value="${URL_NC}" style="width:100%;padding:7px 9px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:11px;font-family:'DM Mono',monospace"/>
+    </div>
+    <div style="margin-bottom:18px;text-align:left">
+      <label style="font-size:10px;font-weight:700;color:#64748b;display:block;margin-bottom:3px;text-transform:uppercase">URL hoja CROSS (gid=480391335)</label>
+      <input id="m-cr" value="${URL_CROSS}" style="width:100%;padding:7px 9px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:11px;font-family:'DM Mono',monospace"/>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button onclick="retryManual()" style="padding:9px 20px;background:#005596;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🔄 Reintentar</button>
+      <button onclick="document.getElementById('loader').style.display='none'" style="padding:9px 16px;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Cerrar</button>
+    </div>
+  </div>`;
 }
 
 async function loadData(){
-  updateProgress(5);
-  setLoaderMsg('Conectando con Google Sheets...');
-
-  // ── Hoja NC ──────────────────────────────────────────────
-  updateProgress(10);
-  setLoaderMsg('Cargando hoja DATA NC...');
-  rawNC = await fetchWithProxies(URL_NC);
-  updateProgress(45);
-  console.log('NC rows:', rawNC.length);
-
-  // ── Hoja CROSS (GID 480391335 confirmado) ────────────────
-  setLoaderMsg('Cargando hoja DATA CROSS...');
-  rawCROSS = await fetchWithProxies(URL_CROSS);
-  updateProgress(75);
-  console.log('CROSS rows:', rawCROSS.length);
-
-  if(rawNC.length===0 && rawCROSS.length===0){
-    showErrorScreen();
-    return;
-  }
-
-  // Si CROSS trae los mismos datos que NC (mismo fingerprint) avisa en consola
-  if(rawNC.length>0 && rawCROSS.length>0 && fingerprint(rawNC)===fingerprint(rawCROSS)){
-    console.warn('CROSS y NC tienen el mismo fingerprint — posible misma hoja');
-  }
-
-  var allData=[...rawNC,...rawCROSS];
-  setLoaderMsg('Procesando '+allData.length.toLocaleString('es-CO')+' registros...');
-  detectFields(allData);
-  updateProgress(88);
-  populateFilters(allData);
-  updateProgress(96);
-  updateDashboard();
-  updateProgress(100);
-  setTimeout(function(){ document.getElementById('loader').style.display='none'; },400);
-}
-
-async function loadOnlyNC(){
-  if(rawNC.length===0){ showErrorScreen(); return; }
-  document.getElementById('loader').innerHTML=
-    '<div style="font-family:DM Sans,sans-serif;display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px">'+
-    '<div class="spinner"></div><div class="loader-text">Procesando datos NC...</div>'+
-    '<div id="progress-bar-wrap" style="width:200px;height:4px;background:#e8f1f9;border-radius:99px;overflow:hidden">'+
-    '<div id="progress-bar" style="height:100%;background:#005596;border-radius:99px;width:60%;transition:width .3s"></div></div></div>';
-  rawCROSS=[];
-  var allData=[...rawNC];
-  detectFields(allData);
-  populateFilters(allData);
-  updateDashboard();
-  document.getElementById('loader').style.display='none';
+  setP(5); setSub('Conectando…');
+  RAW_NC=await tryProxies(URL_NC); setP(45);
+  console.log('NC cargadas:',RAW_NC.length,'filas');
+  RAW_CROSS=await tryProxies(URL_CROSS); setP(78);
+  console.log('CROSS cargadas:',RAW_CROSS.length,'filas');
+  if(!RAW_NC.length&&!RAW_CROSS.length){showError();return;}
+  const all=[...RAW_NC,...RAW_CROSS];
+  setSub(`Procesando ${all.length.toLocaleString('es-CO')} registros…`);
+  detectFields(all); setP(90);
+  populateFilters(all); setP(96);
+  update(); setP(100);
+  setTimeout(()=>document.getElementById('loader').style.display='none',350);
 }
 
 async function retryManual(){
-  var ncUrl=(document.getElementById('manual-nc')||{}).value||'';
-  var crUrl=(document.getElementById('manual-cross')||{}).value||'';
-  document.getElementById('loader').innerHTML=
-    '<div style="font-family:DM Sans,sans-serif;display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px">'+
-    '<div class="spinner"></div><div class="loader-text">Reintentando conexion...</div>'+
-    '<div id="loader-detail" style="font-size:11px;color:#94a3b8;font-family:DM Mono,monospace"></div>'+
-    '<div id="progress-bar-wrap" style="width:200px;height:4px;background:#e8f1f9;border-radius:99px;overflow:hidden">'+
-    '<div id="progress-bar" style="height:100%;background:#005596;border-radius:99px;width:0;transition:width .3s"></div></div></div>';
-
-  if(ncUrl){ rawNC=await fetchWithProxies(ncUrl); }
-  if(crUrl){ rawCROSS=await fetchWithProxies(crUrl); }
-
-  var all=[...rawNC,...rawCROSS];
-  if(!all.length){ showErrorScreen(); return; }
-  detectFields(all);
-  populateFilters(all);
-  updateDashboard();
+  const nc=(document.getElementById('m-nc')||{}).value||URL_NC;
+  const cr=(document.getElementById('m-cr')||{}).value||URL_CROSS;
+  document.getElementById('loader').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px;font-family:'DM Sans',sans-serif"><div class="spinner"></div><div class="loader-msg">Reintentando…</div><div class="loader-sub" id="loader-sub"></div><div id="prog-wrap"><div id="prog-bar" style="height:4px;background:#005596;border-radius:99px;width:0;transition:width .3s"></div></div></div>`;
+  RAW_NC=await tryProxies(nc);
+  RAW_CROSS=await tryProxies(cr);
+  const all=[...RAW_NC,...RAW_CROSS];
+  if(!all.length){showError();return;}
+  detectFields(all); populateFilters(all); update();
   document.getElementById('loader').style.display='none';
 }
 
-// =============================================================
-//  EVENT LISTENERS
-// =============================================================
-document.querySelectorAll('.nav-tab').forEach(function(tab){
-  tab.addEventListener('click',function(){
-    document.querySelectorAll('.nav-tab').forEach(function(t){ t.classList.remove('active'); });
-    document.querySelectorAll('.page-section').forEach(function(s){ s.classList.remove('active'); });
-    tab.classList.add('active');
-    document.getElementById('page-'+tab.dataset.tab).classList.add('active');
-    if(tab.dataset.tab==='mapa'){ setTimeout(function(){ if(mapInstance) mapInstance.invalidateSize(); },200); }
+// ================================================
+// EVENTS
+// ================================================
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('page-'+t.dataset.tab).classList.add('on');
+    if(t.dataset.tab==='mapa') setTimeout(()=>MAP_INST&&MAP_INST.invalidateSize(),200);
   });
 });
 
-var pills=document.querySelectorAll('.pill[data-origin]');
-pills.forEach(function(pill){
-  pill.addEventListener('click',function(){
-    var o=pill.dataset.origin;
-    if(o==='AMBOS'){
-      var isActive=pill.classList.contains('active');
-      if(!isActive){
-        pills.forEach(function(p){ p.classList.toggle('active',p.dataset.origin!=='AMBOS'); });
-        state.origin='AMBOS';
-      }
-    } else {
-      pill.classList.toggle('active');
-      document.querySelector('.pill[data-origin="AMBOS"]').classList.remove('active');
-      var ncA=document.querySelector('.pill[data-origin="NC"]').classList.contains('active');
-      var crA=document.querySelector('.pill[data-origin="CROSS"]').classList.contains('active');
-      state.origin=ncA&&crA?'AMBOS':ncA?'NC':crA?'CROSS':'AMBOS';
-      if(ncA&&crA){ state.origin='AMBOS'; }
-    }
-    updateDashboard();
+document.querySelectorAll('.pill[data-o]').forEach(p=>{
+  p.addEventListener('click',()=>{
+    p.classList.toggle('on');
+    const ncOn=document.querySelector('.pill[data-o="NC"]').classList.contains('on');
+    const crOn=document.querySelector('.pill[data-o="CROSS"]').classList.contains('on');
+    // No permitir que ambos estén desactivados
+    if(!ncOn&&!crOn){ p.classList.add('on'); return; }
+    ST.nc=ncOn; ST.cross=crOn; update();
   });
 });
 
-document.getElementById('filter-ciudad').addEventListener('change',function(e){ state.ciudad=e.target.value; updateDashboard(); });
-document.getElementById('filter-estado').addEventListener('change',function(e){ state.estado=e.target.value; updateDashboard(); });
-document.getElementById('filter-fecha-ini').addEventListener('change',function(e){ state.fechaIni=e.target.value?new Date(e.target.value):null; updateDashboard(); });
-document.getElementById('filter-fecha-fin').addEventListener('change',function(e){ state.fechaFin=e.target.value?new Date(e.target.value):null; updateDashboard(); });
-document.getElementById('btn-reset').addEventListener('click',function(){
-  state={origin:'AMBOS',ciudad:'',estado:'',fechaIni:null,fechaFin:null,search:''};
-  document.getElementById('filter-ciudad').value='';
-  document.getElementById('filter-estado').value='';
-  document.getElementById('filter-fecha-ini').value='';
-  document.getElementById('filter-fecha-fin').value='';
-  document.getElementById('search-table').value='';
-  pills.forEach(function(p){ p.classList.toggle('active',p.dataset.origin!=='AMBOS'); });
-  updateDashboard();
+document.getElementById('f-ciudad').addEventListener('change',e=>{ST.ciudad=e.target.value;update();});
+document.getElementById('f-novedad').addEventListener('change',e=>{ST.novedad=e.target.value;update();});
+document.getElementById('f-fi').addEventListener('change',e=>{ST.fi=e.target.value?new Date(e.target.value):null;update();});
+document.getElementById('f-ff').addEventListener('change',e=>{ST.ff=e.target.value?new Date(e.target.value):null;update();});
+document.getElementById('srch').addEventListener('input',e=>{ST.search=e.target.value;buildDetail(getFiltered());});
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  ST={nc:true,cross:true,ciudad:'',novedad:'',fi:null,ff:null,search:''};
+  ['f-ciudad','f-novedad','f-fi','f-ff','srch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.querySelectorAll('.pill[data-o]').forEach(p=>p.classList.add('on'));
+  update();
 });
-document.getElementById('search-table').addEventListener('input',function(e){ state.search=e.target.value; buildDetailTable(getFilteredData()); });
 
-// =============================================================
-//  BOOT
-// =============================================================
+// ================================================
+// BOOT
+// ================================================
 loadData();
 </script>
 </body>
