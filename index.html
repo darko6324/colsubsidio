@@ -4,116 +4,152 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Dashboard Logístico · Colsubsidio</title>
-<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  --blue:#005596;--blue-dark:#003f72;--blue-light:#e8f1f9;
+  --blue:#005596;--blue-dk:#003f72;--blue-lt:#e8f1f9;
   --yellow:#FFD100;--gray:#f4f6f9;--border:#e2e8f0;
   --text:#1e293b;--muted:#64748b;
-  --green:#10b981;--red:#ef4444;--orange:#f59e0b;--purple:#8b5cf6;--cyan:#06b6d4;
-  --shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,85,150,.08);
-  --shadow-lg:0 4px 12px rgba(0,0,0,.12),0 8px 32px rgba(0,85,150,.12);
+  --green:#10b981;--red:#ef4444;--orange:#f59e0b;
+  --purple:#8b5cf6;--cyan:#06b6d4;--pink:#ec4899;
+  --sh:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,85,150,.08);
+  --sh2:0 4px 12px rgba(0,0,0,.12),0 8px 32px rgba(0,85,150,.12);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--gray);color:var(--text);min-height:100vh}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
+
+/* LOADER */
 #loader{position:fixed;inset:0;z-index:9999;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-.spinner{width:44px;height:44px;border:4px solid var(--blue-light);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+.spinner{width:44px;height:44px;border:4px solid var(--blue-lt);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loader-msg{font-size:13px;color:var(--muted);font-weight:500}
-.loader-sub{font-size:11px;color:#94a3b8;font-family:'DM Mono',monospace}
-#prog-wrap{width:220px;height:4px;background:var(--blue-light);border-radius:99px;overflow:hidden}
-#prog-bar{height:100%;background:var(--blue);border-radius:99px;width:0;transition:width .3s}
-#hdr{background:var(--blue);height:54px;display:flex;align-items:center;padding:0 22px;gap:14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-.logo{width:34px;height:34px;background:var(--yellow);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:var(--blue);flex-shrink:0}
-.hdr-title{color:white;font-size:13px;font-weight:700}
-.hdr-sub{color:rgba(255,255,255,.5);font-size:11px}
-#hdr-update{color:rgba(255,255,255,.45);font-size:10px;font-family:'DM Mono',monospace;margin-left:auto}
-#nav{background:white;border-bottom:1px solid var(--border);padding:0 22px;display:flex;position:sticky;top:54px;z-index:99;overflow-x:auto}
+#ld-msg{font-size:13px;color:var(--muted);font-weight:500}
+#ld-sub{font-size:11px;color:#94a3b8;font-family:'DM Mono',monospace;max-width:380px;text-align:center}
+#pw{width:220px;height:4px;background:var(--blue-lt);border-radius:99px;overflow:hidden}
+#pb{height:100%;background:var(--blue);border-radius:99px;width:0;transition:width .3s}
+
+/* HEADER */
+#hdr{background:var(--blue);height:58px;display:flex;align-items:center;padding:0 22px;gap:14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.22)}
+.logo{width:36px;height:36px;background:var(--yellow);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:var(--blue);flex-shrink:0;letter-spacing:-.5px}
+.hdr-r{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.hdr-update{color:rgba(255,255,255,.55);font-size:10px;font-family:'DM Mono',monospace}
+.hdr-fecha{color:var(--yellow);font-size:11px;font-weight:700;font-family:'DM Mono',monospace}
+
+/* NAV */
+#nav{background:white;border-bottom:1px solid var(--border);padding:0 22px;display:flex;position:sticky;top:58px;z-index:99;overflow-x:auto}
 .tab{padding:13px 18px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;user-select:none}
 .tab:hover{color:var(--blue)}.tab.on{color:var(--blue);border-bottom-color:var(--yellow)}
+
+/* FILTERS */
 #fbar{background:white;border-bottom:1px solid var(--border);padding:9px 22px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.flabel{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.fsel,.finput{height:32px;padding:0 11px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:white;outline:none;transition:border-color .15s;cursor:pointer}
-.fsel:focus,.finput:focus{border-color:var(--blue)}
-.pill-group{display:flex;gap:3px}
-.pill{height:32px;padding:0 13px;border-radius:8px;border:1.5px solid var(--border);background:white;font-size:11px;font-weight:700;letter-spacing:.04em;cursor:pointer;transition:all .15s;color:var(--muted)}
+.fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.fsel,.fin{height:32px;padding:0 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:white;outline:none;transition:border-color .15s;cursor:pointer}
+.fsel:focus,.fin:focus{border-color:var(--blue)}
+.pg{display:flex;gap:3px}
+.pill{height:32px;padding:0 12px;border-radius:8px;border:1.5px solid var(--border);background:white;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;color:var(--muted)}
 .pill.on{background:var(--blue);border-color:var(--blue);color:white}
 .pill:hover:not(.on){border-color:var(--blue);color:var(--blue)}
-.btn-rst{height:32px;padding:0 13px;background:var(--blue-light);color:var(--blue);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer}
-.btn-rst:hover{background:#d0e4f5}
-#rec-count{margin-left:auto;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+.brst{height:32px;padding:0 12px;background:var(--blue-lt);color:var(--blue);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer}
+#rc{margin-left:auto;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* PAGES */
 .page{display:none;padding:20px 22px}.page.on{display:block}
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:18px}
-.kpi{background:white;border-radius:13px;box-shadow:var(--shadow);padding:16px 18px;position:relative;overflow:hidden;transition:box-shadow .2s,transform .15s;cursor:default}
-.kpi:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+
+/* KPI */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:white;border-radius:13px;box-shadow:var(--sh);padding:16px 18px;position:relative;overflow:hidden;transition:box-shadow .2s,transform .15s}
+.kpi:hover{box-shadow:var(--sh2);transform:translateY(-1px)}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--ac,var(--blue))}
-.kpi-icon{width:36px;height:36px;border-radius:10px;background:var(--ac-bg,var(--blue-light));display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px}
-.kpi-val{font-size:26px;font-weight:700;line-height:1;letter-spacing:-.5px;font-family:'DM Mono',monospace}
-.kpi-lbl{font-size:11px;color:var(--muted);margin-top:4px;font-weight:500}
-.charts-2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px}
-.charts-eq{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-@media(max-width:860px){.charts-2,.charts-eq{grid-template-columns:1fr}}
-.card{background:white;border-radius:13px;box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
-.card-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px}
-.card-sub{font-size:10px;color:var(--muted);margin-bottom:14px}
+.kpi-ic{width:34px;height:34px;border-radius:9px;background:var(--ac-bg,var(--blue-lt));display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:10px}
+.kpi-v{font-size:24px;font-weight:700;line-height:1;letter-spacing:-.5px;font-family:'DM Mono',monospace}
+.kpi-l{font-size:11px;color:var(--muted);margin-top:4px;font-weight:500}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+
+/* CARDS */
+.c2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px}
+.c3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.ceq{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:860px){.c2,.c3,.ceq{grid-template-columns:1fr}}
+.card{background:white;border-radius:13px;box-shadow:var(--sh);padding:18px;margin-bottom:16px}
+.ct{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+.cs{font-size:10px;color:var(--muted);margin-bottom:14px}
 canvas{max-height:260px}
-.tbl-wrap{overflow-x:auto}
+
+/* TABLE */
+.tw{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{padding:9px 11px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--border);white-space:nowrap}
+thead th{padding:9px 11px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--border);white-space:nowrap;background:white;position:sticky;top:0}
 tbody tr{border-bottom:1px solid #f1f5f9;transition:background .1s}
 tbody tr:hover{background:#f8fafc}
-tbody td{padding:8px 11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700}
-.b-green{background:#d1fae5;color:#065f46}.b-red{background:#fee2e2;color:#991b1b}
-.b-yellow{background:#fef3c7;color:#92400e}.b-gray{background:#f1f5f9;color:#64748b}
-.b-blue{background:#dbeafe;color:#1e40af}
+tbody td{padding:8px 11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;white-space:nowrap}
+.bg{background:#d1fae5;color:#065f46}.br{background:#fee2e2;color:#991b1b}
+.by{background:#fef3c7;color:#92400e}.bk{background:#f1f5f9;color:#64748b}
+.bb{background:#dbeafe;color:#1e40af}.bo{background:#ffedd5;color:#9a3412}
 .sem{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px;flex-shrink:0}
-.s-g{background:var(--green)}.s-y{background:var(--orange)}.s-r{background:var(--red)}
+.sg{background:var(--green)}.sy{background:var(--orange)}.sr{background:var(--red)}
+
+/* PAGINATION */
 .pgn{display:flex;gap:5px;align-items:center;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
-.pg-btn{width:28px;height:28px;border-radius:6px;border:1.5px solid var(--border);background:white;cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .12s}
-.pg-btn.on{background:var(--blue);border-color:var(--blue);color:white}
-.pg-btn:hover:not(.on){border-color:var(--blue);color:var(--blue)}
+.pb2{width:28px;height:28px;border-radius:6px;border:1.5px solid var(--border);background:white;cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .12s}
+.pb2.on{background:var(--blue);border-color:var(--blue);color:white}
+.pb2:hover:not(.on){border-color:var(--blue);color:var(--blue)}
+
+/* MAP */
 #map{height:460px;border-radius:11px;overflow:hidden}
-.nov-list{display:flex;flex-direction:column}
-.nov-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #f1f5f9}
-.nov-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
-.nov-lbl{flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nov-cnt{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--blue);min-width:48px;text-align:right}
-.nov-pct{font-size:10px;color:var(--muted);min-width:40px;text-align:right}
-.bar-bg{height:5px;background:#f1f5f9;border-radius:99px;overflow:hidden;flex-shrink:0;width:70px}
-.bar-fill{height:100%;border-radius:99px;transition:width .5s ease}
-.hero{background:linear-gradient(135deg,var(--blue) 0%,#003f72 100%);border-radius:15px;padding:32px 30px;color:white;margin-bottom:18px;position:relative;overflow:hidden}
-.hero::after{content:'';position:absolute;right:-50px;top:-50px;width:220px;height:220px;background:rgba(255,209,0,.1);border-radius:50%}
-.hero h1{font-size:22px;font-weight:700;line-height:1.25;margin-bottom:6px}
-.hero p{font-size:13px;color:rgba(255,255,255,.65);max-width:480px}
-.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}
-.hs-item{background:rgba(255,255,255,.1);border-radius:10px;padding:12px 14px}
-.hs-val{font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--yellow)}
-.hs-lbl{font-size:10px;color:rgba(255,255,255,.6);margin-top:2px}
+
+/* NOV LIST */
+.nl{display:flex;flex-direction:column}
+.nr{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f1f5f9}
+.nd{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+.nlbl{flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nc{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--blue);min-width:48px;text-align:right}
+.np{font-size:10px;color:var(--muted);min-width:38px;text-align:right}
+.bb2{height:5px;background:#f1f5f9;border-radius:99px;overflow:hidden;flex-shrink:0;width:70px}
+.bf{height:100%;border-radius:99px;transition:width .5s ease}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--blue) 0%,#003f72 100%);border-radius:15px;padding:30px 28px;color:white;margin-bottom:18px;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;right:-50px;top:-50px;width:200px;height:200px;background:rgba(255,209,0,.1);border-radius:50%;pointer-events:none}
+.hero h1{font-size:21px;font-weight:800;line-height:1.25;margin-bottom:6px}
+.hero p{font-size:12px;color:rgba(255,255,255,.65);max-width:460px}
+.hstats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.hsi{background:rgba(255,255,255,.1);border-radius:10px;padding:11px 13px}
+.hsv{font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--yellow)}
+.hsl{font-size:10px;color:rgba(255,255,255,.6);margin-top:2px}
+
+/* PROYECCION */
+.proj-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(255,209,0,.15);border:1px dashed var(--yellow);border-radius:6px;font-size:10px;color:var(--yellow);font-weight:700;font-family:'DM Mono',monospace;vertical-align:middle;margin-left:6px}
+
 .empty{text-align:center;padding:36px;color:var(--muted);font-size:13px}
+.section-title{font-size:13px;font-weight:700;color:var(--text);margin:18px 0 10px;border-left:3px solid var(--blue);padding-left:10px}
 </style>
 </head>
 <body>
 
 <div id="loader">
-  <div class="logo" style="width:52px;height:52px;font-size:17px;border-radius:13px">CS</div>
+  <div class="logo" style="width:52px;height:52px;font-size:18px;border-radius:13px">CS</div>
   <div class="spinner"></div>
-  <div class="loader-msg">Cargando datos logísticos…</div>
-  <div class="loader-sub" id="loader-sub">Iniciando…</div>
-  <div id="prog-wrap"><div id="prog-bar"></div></div>
+  <div id="ld-msg">Cargando datos logísticos…</div>
+  <div id="ld-sub">Iniciando conexión…</div>
+  <div id="pw"><div id="pb"></div></div>
 </div>
 
 <header id="hdr">
   <div class="logo">CS</div>
-  <div><div class="hdr-title">Colsubsidio · Operación Logística</div><div class="hdr-sub">Dashboard Business Intelligence</div></div>
-  <span id="hdr-update">—</span>
+  <div>
+    <div style="color:white;font-size:13px;font-weight:700">Colsubsidio · Operación Logística</div>
+    <div style="color:rgba(255,255,255,.5);font-size:11px">Dashboard Business Intelligence</div>
+  </div>
+  <div class="hdr-r">
+    <div class="hdr-update">Actualizado: <span id="hdr-ts">—</span></div>
+    <div class="hdr-fecha">Último servicio: <span id="hdr-last">—</span></div>
+  </div>
 </header>
 
 <nav id="nav">
@@ -124,135 +160,177 @@ tbody td{padding:8px 11px;max-width:180px;overflow:hidden;text-overflow:ellipsis
 </nav>
 
 <div id="fbar">
-  <span class="flabel">Origen</span>
-  <div class="pill-group">
+  <span class="fl">Origen</span>
+  <div class="pg">
     <button class="pill on" data-o="NC">NC</button>
     <button class="pill on" data-o="CROSS">CROSS</button>
   </div>
-  <span class="flabel">Ciudad</span>
+  <span class="fl">Ciudad</span>
   <select class="fsel" id="f-ciudad"><option value="">Todas</option></select>
-  <span class="flabel">Novedad</span>
-  <select class="fsel" id="f-novedad"><option value="">Todas</option></select>
-  <span class="flabel">Desde</span>
-  <input type="date" class="finput" id="f-fi"/>
-  <span class="flabel">Hasta</span>
-  <input type="date" class="finput" id="f-ff"/>
-  <button class="btn-rst" id="btn-reset">↺ Limpiar</button>
-  <span id="rec-count"></span>
+  <span class="fl">Tipo Servicio</span>
+  <select class="fsel" id="f-tipo"><option value="">Todos</option></select>
+  <span class="fl">Novedad</span>
+  <select class="fsel" id="f-nov"><option value="">Todas</option></select>
+  <span class="fl">Desde</span>
+  <input type="date" class="fin" id="f-fi"/>
+  <span class="fl">Hasta</span>
+  <input type="date" class="fin" id="f-ff"/>
+  <button class="brst" id="btn-reset">↺ Limpiar</button>
+  <span id="rc"></span>
 </div>
 
-<!-- GENERAL -->
+<!-- ==================== GENERAL ==================== -->
 <section class="page on" id="page-general">
   <div class="hero">
     <h1>Dashboard Operación Logística<br><span style="color:var(--yellow)">Colsubsidio</span></h1>
-    <p>KPIs consolidados NC + CROSS. Filtra por origen, ciudad, novedad o fecha para segmentar el análisis.</p>
-    <div class="hero-stats">
-      <div class="hs-item"><div class="hs-val" id="hs-guias">—</div><div class="hs-lbl">Total Guías</div></div>
-      <div class="hs-item"><div class="hs-val" id="hs-efect">—</div><div class="hs-lbl">% Efectividad</div></div>
-      <div class="hs-item"><div class="hs-val" id="hs-rec">—</div><div class="hs-lbl">Recursos Únicos</div></div>
+    <p>KPIs consolidados NC + CROSS. Usa los filtros de origen, ciudad, tipo de servicio, novedad y fecha para segmentar.</p>
+    <div class="hstats">
+      <div class="hsi"><div class="hsv" id="hs-g">—</div><div class="hsl">Total Guías</div></div>
+      <div class="hsi"><div class="hsv" id="hs-e">—</div><div class="hsl">% Efectividad</div></div>
+      <div class="hsi"><div class="hsv" id="hs-r">—</div><div class="hsl">Recursos Únicos</div></div>
     </div>
   </div>
-  <div class="kpi-grid">
-    <div class="kpi" style="--ac:var(--blue);--ac-bg:var(--blue-light)"><div class="kpi-icon">📦</div><div class="kpi-val" id="kpi-total">—</div><div class="kpi-lbl">Total Guías</div></div>
-    <div class="kpi" style="--ac:var(--green);--ac-bg:#d1fae5"><div class="kpi-icon">✅</div><div class="kpi-val" id="kpi-efect">—</div><div class="kpi-lbl">Efectivos (Sin Novedad)</div></div>
-    <div class="kpi" style="--ac:var(--yellow);--ac-bg:#fef9e7"><div class="kpi-icon">📈</div><div class="kpi-val" id="kpi-pct">—</div><div class="kpi-lbl">% Efectividad</div></div>
-    <div class="kpi" style="--ac:var(--purple);--ac-bg:#ede9fe"><div class="kpi-icon">⏱️</div><div class="kpi-val" id="kpi-pe">—</div><div class="kpi-lbl">Promedio PE</div></div>
-    <div class="kpi" style="--ac:var(--cyan);--ac-bg:#e0f7fa"><div class="kpi-icon">🚛</div><div class="kpi-val" id="kpi-rec">—</div><div class="kpi-lbl">Recursos Únicos</div></div>
-    <div class="kpi" style="--ac:var(--red);--ac-bg:#fee2e2"><div class="kpi-icon">⚠️</div><div class="kpi-val" id="kpi-nov">—</div><div class="kpi-lbl">Con Novedad</div></div>
+
+  <div class="kgrid">
+    <div class="kpi" style="--ac:var(--blue);--ac-bg:var(--blue-lt)"><div class="kpi-ic">📦</div><div class="kpi-v" id="k-tot">—</div><div class="kpi-l">Total Guías</div></div>
+    <div class="kpi" style="--ac:var(--green);--ac-bg:#d1fae5"><div class="kpi-ic">✅</div><div class="kpi-v" id="k-efe">—</div><div class="kpi-l">Efectivos</div></div>
+    <div class="kpi" style="--ac:var(--yellow);--ac-bg:#fef9e7"><div class="kpi-ic">📈</div><div class="kpi-v" id="k-pct">—</div><div class="kpi-l">% Efectividad</div></div>
+    <div class="kpi" style="--ac:var(--purple);--ac-bg:#ede9fe"><div class="kpi-ic">⏱️</div><div class="kpi-v" id="k-pe">—</div><div class="kpi-l">Promedio PE</div><div class="kpi-sub" id="k-pe-u">días</div></div>
+    <div class="kpi" style="--ac:var(--cyan);--ac-bg:#e0f7fa"><div class="kpi-ic">🚛</div><div class="kpi-v" id="k-rec">—</div><div class="kpi-l">Recursos Únicos</div></div>
+    <div class="kpi" style="--ac:var(--red);--ac-bg:#fee2e2"><div class="kpi-ic">⚠️</div><div class="kpi-v" id="k-nov">—</div><div class="kpi-l">Con Novedad</div></div>
   </div>
-  <div class="charts-2">
-    <div class="card"><div class="card-title">Efectividad por Período</div><div class="card-sub">% sin novedad vs total guías por mes</div><canvas id="ch-trend"></canvas></div>
-    <div class="card"><div class="card-title">Mix NC vs CROSS</div><div class="card-sub">Distribución de guías por modelo</div><canvas id="ch-mix"></canvas></div>
+
+  <div class="c2">
+    <div class="card"><div class="ct">Efectividad por Período <span class="proj-badge">⚡ +2 meses proyectados</span></div><div class="cs">% sin novedad vs total guías — línea punteada = proyección</div><canvas id="ch-trend"></canvas></div>
+    <div class="card"><div class="ct">Mix NC vs CROSS</div><div class="cs">Distribución de guías por modelo</div><canvas id="ch-mix"></canvas></div>
   </div>
-  <div class="charts-eq">
-    <div class="card"><div class="card-title">Top 10 Ciudades — Volumen</div><div class="card-sub">Guías totales por ciudad</div><canvas id="ch-ciudad"></canvas></div>
-    <div class="card"><div class="card-title">Top 10 Ciudades — Efectividad</div><div class="card-sub">% efectividad (color: verde ≥90% · amarillo ≥70% · rojo &lt;70%)</div><canvas id="ch-ciudad-efect"></canvas></div>
+
+  <div class="ceq">
+    <div class="card"><div class="ct">Top 10 Ciudades — Volumen</div><div class="cs">Total guías por ciudad</div><canvas id="ch-vol"></canvas></div>
+    <div class="card"><div class="ct">Top 10 Ciudades — Efectividad</div><div class="cs">% verde ≥90% · amarillo ≥70% · rojo &lt;70%</div><canvas id="ch-efe-c"></canvas></div>
   </div>
-  <div class="card"><div class="card-title">Distribución Completa de Novedades</div><div class="card-sub">Conteo por valor de cluster_novedad — verde=efectivo, rojo=novedad</div><canvas id="ch-nov-bar" style="max-height:320px"></canvas></div>
+
+  <!-- NUEVO: Tipo Servicio -->
+  <div class="ceq">
+    <div class="card"><div class="ct">Guías por Tipo de Servicio</div><div class="cs">Distribución de volumen según tipo_servicio</div><canvas id="ch-tipo-vol"></canvas></div>
+    <div class="card"><div class="ct">Efectividad por Tipo de Servicio</div><div class="cs">% efectividad y volumen por tipo de servicio</div><canvas id="ch-tipo-efe"></canvas></div>
+  </div>
+
+  <!-- NUEVO: Tabla totales por tipo_servicio -->
+  <div class="card">
+    <div class="ct">Totales y Efectividad por Tipo de Servicio</div>
+    <div class="cs">Resumen consolidado por tipo — incluye proyección para columnas de tendencia</div>
+    <div class="tw"><table><thead><tr><th>Tipo Servicio</th><th>Total</th><th>Efectivos</th><th>% Efect.</th><th>Con Novedad</th><th>% Novedad</th><th>NC</th><th>CROSS</th></tr></thead><tbody id="tipo-tbody"></tbody></table></div>
+  </div>
 </section>
 
-<!-- NOVEDADES -->
+<!-- ==================== NOVEDADES ==================== -->
 <section class="page" id="page-novedades">
-  <div class="charts-eq">
+  <div class="kgrid" id="nov-kpis">
+    <div class="kpi" style="--ac:var(--red);--ac-bg:#fee2e2"><div class="kpi-ic">⚠️</div><div class="kpi-v" id="nk-tot">—</div><div class="kpi-l">Total con Novedad</div></div>
+    <div class="kpi" style="--ac:var(--orange);--ac-bg:#ffedd5"><div class="kpi-ic">📋</div><div class="kpi-v" id="nk-tipos">—</div><div class="kpi-l">Tipos de Novedad</div></div>
+    <div class="kpi" style="--ac:var(--purple);--ac-bg:#ede9fe"><div class="kpi-ic">🏙️</div><div class="kpi-v" id="nk-ciu">—</div><div class="kpi-l">Ciudades Afectadas</div></div>
+    <div class="kpi" style="--ac:var(--cyan);--ac-bg:#e0f7fa"><div class="kpi-ic">🔬</div><div class="kpi-v" id="nk-esp">—</div><div class="kpi-l">Especialidades</div></div>
+    <div class="kpi" style="--ac:var(--pink);--ac-bg:#fdf2f8"><div class="kpi-ic">📦</div><div class="kpi-v" id="nk-pct">—</div><div class="kpi-l">% del Total</div></div>
+  </div>
+
+  <div class="ceq">
     <div class="card">
-      <div class="card-title">Donut — Novedades con Impacto</div>
-      <div class="card-sub">Sólo guías con novedad (excluye SIN NOVEDAD y ENTREGADO PREVIAMENTE)</div>
-      <canvas id="ch-nov-donut" style="max-height:280px"></canvas>
+      <div class="ct">Distribución de Novedades</div>
+      <div class="cs">Solo servicios cerrados con novedad (excluye SIN NOVEDAD)</div>
+      <canvas id="ch-nov-d" style="max-height:280px"></canvas>
     </div>
     <div class="card" style="overflow-y:auto;max-height:400px">
-      <div class="card-title">Detalle por Cluster (todos los valores)</div>
-      <div class="card-sub">Incluye SIN NOVEDAD para contexto del total</div>
-      <div class="nov-list" id="nov-list-all"></div>
+      <div class="ct">Detalle por Cluster de Novedad</div>
+      <div class="cs">Ranking de tipos de novedad con indicadores</div>
+      <div class="nl" id="nov-list"></div>
     </div>
   </div>
+
+  <div class="ceq">
+    <div class="card"><div class="ct">Top 10 Ciudades con Novedad</div><div class="cs">Volumen de guías con novedad real por ciudad</div><canvas id="ch-nov-ciu"></canvas></div>
+    <div class="card"><div class="ct">Novedades NC vs CROSS</div><div class="cs">Comparativa por modelo de despacho</div><canvas id="ch-nov-og"></canvas></div>
+  </div>
+
+  <!-- NUEVO: Por Especialidad -->
+  <div class="ceq">
+    <div class="card"><div class="ct">Novedades por Especialidad</div><div class="cs">Distribución de novedades según campo especialidad</div><canvas id="ch-nov-esp"></canvas></div>
+    <div class="card"><div class="ct">Efectividad por Especialidad</div><div class="cs">% efectividad vs % novedad por especialidad</div><canvas id="ch-esp-efe"></canvas></div>
+  </div>
+
+  <!-- NUEVO: Tabla por Tipo de Servicio en Novedades -->
   <div class="card">
-    <div class="card-title">Top 10 Ciudades con Más Novedades</div>
-    <div class="card-sub">Guías con novedad real (excluye SIN NOVEDAD)</div>
-    <canvas id="ch-nov-ciudad" style="max-height:280px"></canvas>
+    <div class="ct">Novedades por Tipo de Servicio</div>
+    <div class="cs">Detalle de novedades agrupadas por tipo_servicio y cluster_novedad</div>
+    <div class="tw"><table><thead><tr><th>Tipo Servicio</th><th>Total</th><th>Con Novedad</th><th>% Novedad</th><th>Top Novedad</th><th>Especialidad</th></tr></thead><tbody id="nov-tipo-tbody"></tbody></table></div>
   </div>
-  <div class="charts-eq">
-    <div class="card"><div class="card-title">Novedades NC vs CROSS</div><div class="card-sub">Comparativa por modelo</div><canvas id="ch-nov-origen" style="max-height:240px"></canvas></div>
-    <div class="card"><div class="card-title">Tendencia % Novedades por Mes</div><div class="card-sub">Evolución mensual del porcentaje de guías con novedad</div><canvas id="ch-nov-trend" style="max-height:240px"></canvas></div>
-  </div>
+
+  <div class="card"><div class="ct">Tendencia Novedades por Mes</div><div class="cs">% de guías con novedad — tendencia mensual</div><canvas id="ch-nov-tr" style="max-height:220px"></canvas></div>
 </section>
 
-<!-- MAPA -->
+<!-- ==================== MAPA ==================== -->
 <section class="page" id="page-mapa">
   <div class="card" style="margin-bottom:14px">
-    <div class="card-title">Mapa de Calor — Densidad de Entregas Colombia</div>
-    <div class="card-sub">Tamaño = volumen de guías · Verde ≥90% efectividad · Amarillo ≥70% · Rojo &lt;70%</div>
+    <div class="ct">Mapa de Calor — Colombia</div>
+    <div class="cs">Círculo = volumen · Verde ≥90% efectividad · Amarillo ≥70% · Rojo &lt;70%</div>
     <div id="map"></div>
   </div>
   <div class="card">
-    <div class="card-title">Resumen por Ciudad</div>
-    <div class="tbl-wrap">
-      <table><thead><tr><th>Ciudad</th><th>Total</th><th>Efectivos</th><th>% Efect.</th><th>Novedades</th><th>NC</th><th>CROSS</th></tr></thead>
-      <tbody id="map-tbody"></tbody></table>
-    </div>
+    <div class="ct">Resumen por Ciudad</div>
+    <div class="tw"><table><thead><tr><th>Ciudad</th><th>Total</th><th>Efectivos</th><th>% Efect.</th><th>Novedades</th><th>NC</th><th>CROSS</th></tr></thead><tbody id="map-tb"></tbody></table></div>
   </div>
 </section>
 
-<!-- DETALLE -->
+<!-- ==================== DETALLE ==================== -->
 <section class="page" id="page-detalle">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <div><div class="card-title">Tabla Detallada de Guías</div><div class="card-sub" id="det-count">0 registros</div></div>
-      <input type="text" id="srch" class="finput" placeholder="🔍 Buscar en tabla…" style="width:210px"/>
+      <div><div class="ct">Tabla Detallada de Guías</div><div class="cs" id="det-cnt">0 registros</div></div>
+      <input type="text" id="srch" class="fin" placeholder="🔍 Buscar…" style="width:210px"/>
     </div>
-    <div class="tbl-wrap"><table><thead id="det-head"></thead><tbody id="det-body"></tbody></table></div>
+    <div class="tw"><table><thead id="det-hd"></thead><tbody id="det-bd"></tbody></table></div>
     <div class="pgn" id="pgn"></div>
   </div>
 </section>
 
 <script>
-// ================================================
-// URLS (GIDs confirmados por usuario)
-// ================================================
-const BASE    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS56aIMrnjnUKff8A5LXt92vZN6ME2LGBpAkRyBKdgLgz8dxSNKApXFBZhKnCzb7Q/pub';
-const URL_NC  = BASE + '?gid=0&single=true&output=csv';
-const URL_CROSS = BASE + '?gid=480391335&single=true&output=csv';
-
-const PROXIES = [
-  u => u,
-  u => 'https://corsproxy.io/?' + encodeURIComponent(u),
-  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+// ════════════════════════════════════════════════
+// URLS — GIDs confirmados
+// NC  = gid 0   |   CROSS = gid 480391335
+// ════════════════════════════════════════════════
+const BASE='https://docs.google.com/spreadsheets/d/e/2PACX-1vS56aIMrnjnUKff8A5LXt92vZN6ME2LGBpAkRyBKdgLgz8dxSNKApXFBZhKnCzb7Q/pub';
+// Intentamos múltiples variantes de URL para NC para asegurar que no devuelve CROSS
+const URLS_NC=[
+  BASE+'?gid=0&single=true&output=csv',
+  BASE+'?output=csv',
+  BASE+'?gid=0&output=csv',
+];
+const URLS_CROSS=[
+  BASE+'?gid=480391335&single=true&output=csv',
+  BASE+'?gid=480391335&output=csv',
 ];
 
-// ================================================
-// STATE
-// ================================================
-let RAW_NC=[], RAW_CROSS=[], FIELDS={};
-let CHARTS={}, MAP_INST=null, MAP_LAYERS=[];
-let DET_DATA=[], DET_PAGE=1;
-const PG=25;
-let ST={nc:true,cross:true,ciudad:'',novedad:'',fi:null,ff:null,search:''};
+const PROXIES=[
+  u=>u,
+  u=>'https://corsproxy.io/?'+encodeURIComponent(u),
+  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
+];
 
-// ================================================
-// CITY COORDS (Colombia)
-// ================================================
+// ════════════════════════════════════════════════
+// GLOBAL STATE
+// ════════════════════════════════════════════════
+let RNC=[],RCR=[],F={};
+let CHS={},MI=null,ML=[];
+let DD=[],DP=1; const PG=25;
+let ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',fi:null,ff:null,srch:''};
+
+// ════════════════════════════════════════════════
+// CIUDAD COORDS
+// ════════════════════════════════════════════════
 const COORDS={
-  'BOGOTA':{lat:4.711,lng:-74.072},'BOGOTA D.C.':{lat:4.711,lng:-74.072},'BOGOTA DC':{lat:4.711,lng:-74.072},
-  'BOGOTA D C':{lat:4.711,lng:-74.072},'BOGOTA (CUNDINAMARCA)':{lat:4.711,lng:-74.072},
+  'BOGOTA':{lat:4.711,lng:-74.072},'BOGOTA D.C.':{lat:4.711,lng:-74.072},
+  'BOGOTA DC':{lat:4.711,lng:-74.072},'BOGOTA D C':{lat:4.711,lng:-74.072},
+  'BOGOTA (CUNDINAMARCA)':{lat:4.711,lng:-74.072},
   'MEDELLIN':{lat:6.244,lng:-75.581},'CALI':{lat:3.452,lng:-76.532},
   'BARRANQUILLA':{lat:10.969,lng:-74.781},'CARTAGENA':{lat:10.393,lng:-75.483},
   'BUCARAMANGA':{lat:7.119,lng:-73.123},'PEREIRA':{lat:4.813,lng:-75.696},
@@ -283,485 +361,623 @@ const COORDS={
   'SANTA ROSA DE CABAL':{lat:4.869,lng:-75.622},'VILLETA':{lat:5.013,lng:-74.476},
 };
 
-// ================================================
-// COLORES POR TIPO
-// ================================================
-const PAL=['#005596','#1a78c2','#0097d5','#4dd0e1','#80deea','#003f72','#0066b3','#4a90d9','#6ab4f5','#b3d9ff'];
-const PAL2=['#ef4444','#f97316','#f59e0b','#8b5cf6','#06b6d4','#ec4899','#14b8a6','#84cc16','#a78bfa','#67e8f9','#fda4af','#86efac'];
+const P12=['#005596','#ef4444','#f59e0b','#10b981','#8b5cf6','#06b6d4','#f97316','#ec4899','#84cc16','#1a78c2','#14b8a6','#a78bfa'];
 
-// ================================================
+// ════════════════════════════════════════════════
 // HELPERS
-// ================================================
+// ════════════════════════════════════════════════
 const N=s=>(s||'').toString().trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 const fmt=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(Math.round(n)||0);
 const pct=(a,b)=>b>0?(a/b*100):0;
-const fmtP=n=>isNaN(n)?'—':n.toFixed(1)+'%';
-const gv=(row,f)=>f?(row[f]||'').toString().trim():'';
+const fP=n=>isNaN(n)?'—':n.toFixed(1)+'%';
+const gv=(r,f)=>f?(r[f]||'').toString().trim():'';
 
 function detectFields(data){
-  if(!data.length) return;
+  if(!data.length)return;
   const cols=Object.keys(data[0]);
-  const find=(...cands)=>{
-    for(const c of cands){ const f=cols.find(x=>N(x)===N(c)); if(f) return f; }
-    for(const c of cands){ const f=cols.find(x=>N(x).includes(N(c))||N(c).includes(N(x))); if(f) return f; }
+  const find=(...cc)=>{
+    for(const c of cc){const f=cols.find(x=>N(x)===N(c));if(f)return f;}
+    for(const c of cc){const f=cols.find(x=>N(x).includes(N(c))||N(c).includes(N(x)));if(f)return f;}
     return null;
   };
-  FIELDS.novedad=find('cluster_novedad','novedad','tipo_novedad','cluster','motivo','estado_novedad','novedad_tipo');
-  FIELDS.ciudad =find('ciudad','municipio','destino','ciudad_destino','city','ciudad_entrega','municipio_destino');
-  FIELDS.fecha  =find('fecha','fecha_entrega','fecha_proceso','fecha_registro','date','fecha_novedad');
-  FIELDS.placa  =find('placa','conductor','vehiculo','recurso','transportador','placa_vehiculo');
-  FIELDS.pe     =find('pe','tiempo_pe','dias_pe','dias','tiempo_proceso','horas_pe','promedio_pe');
-  console.log('%cCampos detectados','color:#005596;font-weight:bold',FIELDS);
-  const sample=[...new Set(data.slice(0,500).map(r=>gv(r,FIELDS.novedad)).filter(Boolean))].slice(0,20);
-  console.log('%cMuestra cluster_novedad','color:#ef4444',sample);
-  const cities=[...new Set(data.slice(0,200).map(r=>getCiudad(r)).filter(c=>c!=='SIN CIUDAD'))].slice(0,15);
-  console.log('%cMuestra ciudades','color:#10b981',cities);
+  F.nov =find('cluster_novedad','novedad','tipo_novedad','cluster','motivo','estado_novedad');
+  F.ciu =find('ciudad','municipio','destino','ciudad_destino','city','ciudad_entrega','municipio_destino');
+  F.fecha=find('fecha','fecha_entrega','fecha_proceso','fecha_registro','date','fecha_novedad','fec');
+  F.placa=find('placa','conductor','vehiculo','recurso','transportador');
+  F.pe   =find('pe','tiempo_pe','dias_pe','dias','tiempo_proceso','horas_pe','promedio_pe');
+  F.tipo =find('tipo_servicio','tipo_de_servicio','tipo','servicio','modalidad','tipo_guia');
+  F.esp  =find('especialidad','especialidad_servicio','esp','rama','categoria','linea');
+  F.estado=find('estado','estado_guia','estado_servicio','estado_entrega');
+  console.log('%cCampos detectados','color:#005596;font-weight:bold',F);
+  console.log('Cols disponibles:',cols);
+  const sNov=[...new Set(data.slice(0,300).map(r=>gv(r,F.nov)).filter(Boolean))].slice(0,20);
+  console.log('%cValores cluster_novedad','color:#ef4444',sNov);
+  const sTipo=[...new Set(data.slice(0,300).map(r=>gv(r,F.tipo)).filter(Boolean))].slice(0,15);
+  console.log('%cValores tipo_servicio','color:#10b981',sTipo);
+  const sEsp=[...new Set(data.slice(0,300).map(r=>gv(r,F.esp)).filter(Boolean))].slice(0,15);
+  console.log('%cValores especialidad','color:#8b5cf6',sEsp);
 }
 
-const getCiudad=row=>N(gv(row,FIELDS.ciudad))||'SIN CIUDAD';
-const getNov=row=>N(gv(row,FIELDS.novedad))||'SIN NOVEDAD';
+const getCiu=r=>N(gv(r,F.ciu))||'SIN CIUDAD';
+const getNov=r=>N(gv(r,F.nov))||'SIN NOVEDAD';
+const getTipo=r=>N(gv(r,F.tipo))||'SIN TIPO';
+const getEsp=r=>N(gv(r,F.esp))||'SIN ESPECIALIDAD';
 
-// Efectivo = SIN NOVEDAD (entrega exitosa, sin ningún problema)
-// ENTREGADO PREVIAMENTE también se cuenta como positivo
-const isEfect=row=>{ const v=getNov(row); return v===''||v==='SIN NOVEDAD'||v==='ENTREGADO PREVIAMENTE'; };
-const isNov=row=>{ const v=getNov(row); return v!==''&&v!=='SIN NOVEDAD'; };
+// Efectivo: SIN NOVEDAD o ENTREGADO PREVIAMENTE
+const isEf=r=>{const v=getNov(r);return v===''||v==='SIN NOVEDAD'||v==='ENTREGADO PREVIAMENTE';};
+// Con novedad real (cerrado con novedad)
+const isNv=r=>{const v=getNov(r);return v!==''&&v!=='SIN NOVEDAD';};
 
-function getFecha(row){
-  const raw=gv(row,FIELDS.fecha); if(!raw) return null;
+function getFecha(r){
+  const raw=gv(r,F.fecha);if(!raw)return null;
   const m=raw.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
-  if(m){ const y=m[3].length===2?'20'+m[3]:m[3]; return new Date(`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`); }
-  const d=new Date(raw); return isNaN(d)?null:d;
+  if(m){const y=m[3].length===2?'20'+m[3]:m[3];return new Date(`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`);}
+  const d=new Date(raw);return isNaN(d)?null:d;
 }
 
-// ================================================
-// FILTERED
-// ================================================
+function getLastDate(data){
+  let last=null;
+  data.forEach(r=>{const d=getFecha(r);if(d&&(!last||d>last))last=d;});
+  return last;
+}
+
+// ════════════════════════════════════════════════
+// FILTERED DATA
+// ════════════════════════════════════════════════
 function getFiltered(){
-  let data=[];
-  if(ST.nc)    RAW_NC.forEach(r=>data.push({...r,_o:'NC'}));
-  if(ST.cross) RAW_CROSS.forEach(r=>data.push({...r,_o:'CROSS'}));
-  if(ST.ciudad)  data=data.filter(r=>getCiudad(r)===ST.ciudad);
-  if(ST.novedad) data=data.filter(r=>getNov(r)===ST.novedad);
-  if(ST.fi) data=data.filter(r=>{const d=getFecha(r);return d&&d>=ST.fi;});
-  if(ST.ff) data=data.filter(r=>{const d=getFecha(r);return d&&d<=ST.ff;});
-  return data;
+  let d=[];
+  if(ST.nc)   RNC.forEach(r=>d.push({...r,_o:'NC'}));
+  if(ST.cross) RCR.forEach(r=>d.push({...r,_o:'CROSS'}));
+  if(ST.ciudad) d=d.filter(r=>getCiu(r)===ST.ciudad);
+  if(ST.tipo)   d=d.filter(r=>getTipo(r)===ST.tipo);
+  if(ST.nov)    d=d.filter(r=>getNov(r)===ST.nov);
+  if(ST.fi) d=d.filter(r=>{const x=getFecha(r);return x&&x>=ST.fi;});
+  if(ST.ff) d=d.filter(r=>{const x=getFecha(r);return x&&x<=ST.ff;});
+  return d;
 }
 
 function calcKPIs(data){
-  const total=data.length;
-  const efectivos=data.filter(isEfect).length;
-  const conNov=data.filter(isNov).length;
-  const recursos=new Set(data.map(r=>gv(r,FIELDS.placa)).filter(Boolean));
-  const peVals=data.map(r=>parseFloat(gv(r,FIELDS.pe))).filter(v=>!isNaN(v)&&v>0);
-  const avgPE=peVals.length?peVals.reduce((a,b)=>a+b,0)/peVals.length:null;
-  return {total,efectivos,conNov,pctEfect:pct(efectivos,total),recursos:recursos.size,avgPE};
+  const tot=data.length;
+  const ef=data.filter(isEf).length;
+  const nv=data.filter(isNv).length;
+  const rec=new Set(data.map(r=>gv(r,F.placa)).filter(Boolean));
+  const pe=data.map(r=>parseFloat(gv(r,F.pe))).filter(v=>!isNaN(v)&&v>0);
+  return{tot,ef,nv,pEf:pct(ef,tot),rec:rec.size,avgPE:pe.length?pe.reduce((a,b)=>a+b)/pe.length:null};
 }
 
-// ================================================
-// CHART UTILS
-// ================================================
-const dc=id=>{if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}};
+// ════════════════════════════════════════════════
+// PROYECCION LINEAL (últimos 3 meses → +2 meses)
+// ════════════════════════════════════════════════
+function projectValues(keys,vals,n=2){
+  if(keys.length<2)return{keys:[],vals:[]};
+  // Regresión lineal simple
+  const len=Math.min(keys.length,4); // usar últimos 4 puntos
+  const xs=Array.from({length:len},(_,i)=>i);
+  const ys=vals.slice(-len);
+  const sx=xs.reduce((a,b)=>a+b,0),sy=ys.reduce((a,b)=>a+b,0);
+  const sxy=xs.reduce((a,i)=>a+i*ys[i],0),sx2=xs.reduce((a,i)=>a+i*i,0);
+  const m=(len*sxy-sx*sy)/(len*sx2-sx*sx)||0;
+  const b=(sy-m*sx)/len;
+  // Generar meses futuros
+  const lastKey=keys[keys.length-1];
+  const [y,mo]=lastKey.split('-').map(Number);
+  const futKeys=[],futVals=[];
+  for(let i=1;i<=n;i++){
+    const nm=mo+i;const ny=y+(nm>12?Math.floor((nm-1)/12):0);
+    futKeys.push(`${ny}-${String(nm>12?nm-12:nm).padStart(2,'0')}`);
+    futVals.push(Math.max(0,Math.min(100,b+m*(len-1+i))));
+  }
+  return{keys:futKeys,vals:futVals};
+}
 
-function mkBarH(id,labels,vals,colors,pctAxis=false){
-  dc(id); const ctx=document.getElementById(id); if(!ctx) return;
-  CHARTS[id]=new Chart(ctx.getContext('2d'),{
+// ════════════════════════════════════════════════
+// CHART UTILS
+// ════════════════════════════════════════════════
+const dc=id=>{if(CHS[id]){CHS[id].destroy();delete CHS[id];}};
+
+function mkBarH(id,labels,vals,colors,isPct=false,maxV=null){
+  dc(id);const ctx=document.getElementById(id);if(!ctx)return;
+  CHS[id]=new Chart(ctx.getContext('2d'),{
     type:'bar',
     data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:5,borderSkipped:false}]},
-    options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>pctAxis?` ${c.raw.toFixed(1)}%`:` ${fmt(c.raw)}`}}},
-      scales:{x:{beginAtZero:true,...(pctAxis?{max:100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}}}:{ticks:{font:{family:'DM Mono',size:10}}}),grid:{color:'#f1f5f9'}},
+    options:{responsive:true,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>isPct?` ${c.raw.toFixed(1)}%`:` ${fmt(c.raw)}`}}},
+      scales:{x:{beginAtZero:true,...(isPct?{max:maxV||100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}}}:{ticks:{font:{family:'DM Mono',size:10}}}),grid:{color:'#f1f5f9'}},
               y:{ticks:{font:{family:'DM Sans',size:11}},grid:{display:false}}}}
   });
 }
 
-function mkBarV(id,labels,datasets){
-  dc(id); const ctx=document.getElementById(id); if(!ctx) return;
-  CHARTS[id]=new Chart(ctx.getContext('2d'),{
-    type:'bar',data:{labels,datasets},
-    options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
-      scales:{x:{ticks:{font:{family:'DM Sans',size:11}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
-  });
-}
-
-function mkLine(id,labels,datasets,pctY=true){
-  dc(id); const ctx=document.getElementById(id); if(!ctx) return;
-  CHARTS[id]=new Chart(ctx.getContext('2d'),{
-    type:'line',data:{labels,datasets},
-    options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
-      scales:{
-        y:{beginAtZero:true,...(pctY?{max:100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}}}:{ticks:{font:{family:'DM Mono',size:10}}}),grid:{color:'#f1f5f9'}},
-        y1:{position:'right',beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{display:false}},
-        x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}
-      }}
-  });
-}
-
 function mkDonut(id,labels,vals,colors){
-  dc(id); const ctx=document.getElementById(id); if(!ctx) return;
-  CHARTS[id]=new Chart(ctx.getContext('2d'),{
+  dc(id);const ctx=document.getElementById(id);if(!ctx)return;
+  CHS[id]=new Chart(ctx.getContext('2d'),{
     type:'doughnut',
     data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:0,hoverOffset:8}]},
     options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:10},boxWidth:10}}}}
   });
 }
 
-// ================================================
+function mkBarV(id,labels,datasets){
+  dc(id);const ctx=document.getElementById(id);if(!ctx)return;
+  CHS[id]=new Chart(ctx.getContext('2d'),{
+    type:'bar',data:{labels,datasets},
+    options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+      scales:{x:{ticks:{font:{family:'DM Sans',size:11}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+  });
+}
+
+// ════════════════════════════════════════════════
 // BUILD GENERAL
-// ================================================
+// ════════════════════════════════════════════════
 function buildTrend(data){
   const g={};
-  data.forEach(r=>{const d=getFecha(r);if(!d)return;const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(!g[k])g[k]={t:0,e:0};g[k].t++;if(isEfect(r))g[k].e++;});
-  const keys=Object.keys(g).sort(); if(!keys.length) return;
-  mkLine('ch-trend',keys,[
-    {label:'% Efectividad',data:keys.map(k=>pct(g[k].e,g[k].t)),borderColor:'#005596',backgroundColor:'rgba(0,85,150,.08)',fill:true,tension:.4,pointRadius:4,yAxisID:'y'},
-    {label:'Guías',data:keys.map(k=>g[k].t),borderColor:'#FFD100',borderDash:[4,3],backgroundColor:'rgba(255,209,0,.06)',fill:true,tension:.4,pointRadius:3,yAxisID:'y1'}
-  ]);
+  data.forEach(r=>{const d=getFecha(r);if(!d)return;const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(!g[k])g[k]={t:0,e:0};g[k].t++;if(isEf(r))g[k].e++;});
+  const keys=Object.keys(g).sort();if(!keys.length)return;
+  const pcts=keys.map(k=>pct(g[k].e,g[k].t));
+  const tots=keys.map(k=>g[k].t);
+  const proj=projectValues(keys,pcts);
+
+  dc('ch-trend');const ctx=document.getElementById('ch-trend');if(!ctx)return;
+  CHS['ch-trend']=new Chart(ctx.getContext('2d'),{
+    type:'line',
+    data:{
+      labels:[...keys,...proj.keys],
+      datasets:[
+        {label:'% Efectividad',data:[...pcts,...Array(proj.keys.length).fill(null)],borderColor:'#005596',backgroundColor:'rgba(0,85,150,.08)',fill:true,tension:.4,pointRadius:4,yAxisID:'y',pointBackgroundColor:'#005596'},
+        {label:'Proyección',data:[...Array(keys.length-1).fill(null),pcts[pcts.length-1],...proj.vals],borderColor:'#005596',borderDash:[6,4],backgroundColor:'transparent',fill:false,tension:.3,pointRadius:3,yAxisID:'y',pointBackgroundColor:'#FFD100',pointBorderColor:'#005596'},
+        {label:'Guías',data:[...tots,...Array(proj.keys.length).fill(null)],borderColor:'#FFD100',borderDash:[4,3],backgroundColor:'rgba(255,209,0,.06)',fill:true,tension:.4,pointRadius:3,yAxisID:'y1'}
+      ]
+    },
+    options:{responsive:true,
+      plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+      scales:{
+        y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},
+        y1:{position:'right',beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{display:false}},
+        x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}
+      }}
+  });
 }
 
 function buildMix(data){
-  const nc=data.filter(r=>r._o==='NC').length, cr=data.filter(r=>r._o==='CROSS').length;
-  mkDonut('ch-mix',['No Centralizado','Crossdocking'],[nc,cr],['#005596','#FFD100']);
+  const nc=data.filter(r=>r._o==='NC').length,cr=data.filter(r=>r._o==='CROSS').length;
+  mkDonut('ch-mix',['No Centralizado (NC)','Crossdocking (CROSS)'],[nc,cr],['#005596','#FFD100']);
 }
 
-function buildCiudadVol(data){
-  const c={};
-  data.forEach(r=>{const x=getCiudad(r);if(x!=='SIN CIUDAD')c[x]=(c[x]||0)+1;});
-  const top=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10); if(!top.length) return;
-  mkBarH('ch-ciudad',top.map(x=>x[0].slice(0,16)),top.map(x=>x[1]),PAL);
+function buildCiuVol(data){
+  const c={};data.forEach(r=>{const x=getCiu(r);if(x!=='SIN CIUDAD')c[x]=(c[x]||0)+1;});
+  const top=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10);if(!top.length)return;
+  mkBarH('ch-vol',top.map(x=>x[0].slice(0,16)),top.map(x=>x[1]),P12.slice(0,10));
 }
 
-function buildCiudadEfect(data){
+function buildCiuEfe(data){
   const c={},e={};
-  data.forEach(r=>{const x=getCiudad(r);if(x==='SIN CIUDAD')return;c[x]=(c[x]||0)+1;if(isEfect(r))e[x]=(e[x]||0)+1;});
-  const top=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10); if(!top.length) return;
+  data.forEach(r=>{const x=getCiu(r);if(x==='SIN CIUDAD')return;c[x]=(c[x]||0)+1;if(isEf(r))e[x]=(e[x]||0)+1;});
+  const top=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10);if(!top.length)return;
   const vals=top.map(x=>pct(e[x[0]]||0,x[1]));
-  mkBarH('ch-ciudad-efect',top.map(x=>x[0].slice(0,16)),vals,vals.map(v=>v>=90?'#10b981':v>=70?'#f59e0b':'#ef4444'),true);
+  mkBarH('ch-efe-c',top.map(x=>x[0].slice(0,16)),vals,vals.map(v=>v>=90?'#10b981':v>=70?'#f59e0b':'#ef4444'),true);
 }
 
-function buildNovBar(data){
-  const c={};
-  data.forEach(r=>{const n=getNov(r);c[n]=(c[n]||0)+1;});
-  const sorted=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,16); if(!sorted.length) return;
-  const colors=sorted.map(([k])=>k==='SIN NOVEDAD'?'#10b981':k==='ENTREGADO PREVIAMENTE'?'#06b6d4':'#ef4444');
-  dc('ch-nov-bar'); const ctx=document.getElementById('ch-nov-bar'); if(!ctx) return;
-  CHARTS['ch-nov-bar']=new Chart(ctx.getContext('2d'),{
-    type:'bar',
-    data:{labels:sorted.map(x=>x[0].slice(0,30)),datasets:[{data:sorted.map(x=>x[1]),backgroundColor:colors,borderRadius:5,borderSkipped:false}]},
-    options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} guías`}}},
-      scales:{x:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},y:{ticks:{font:{family:'DM Sans',size:11}},grid:{display:false}}}}
-  });
+function buildTipoVol(data){
+  const c={};data.forEach(r=>{const t=getTipo(r);c[t]=(c[t]||0)+1;});
+  const sorted=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10);if(!sorted.length)return;
+  mkDonut('ch-tipo-vol',sorted.map(x=>x[0].slice(0,20)),sorted.map(x=>x[1]),P12.slice(0,sorted.length));
 }
 
-// ================================================
-// BUILD NOVEDADES
-// ================================================
-function buildNovDonut(data){
-  // Solo novedades reales (excluye SIN NOVEDAD y ENTREGADO PREVIAMENTE)
-  const c={};
-  data.filter(isNov).forEach(r=>{const n=getNov(r);if(n)c[n]=(c[n]||0)+1;});
-  const entries=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,12);
-
-  if(!entries.length){
-    const el=document.getElementById('ch-nov-donut');
-    if(el&&el.parentElement) el.parentElement.innerHTML='<div class="empty">Sin guías con novedad en la selección</div>';
-  } else {
-    mkDonut('ch-nov-donut',entries.map(x=>x[0].slice(0,24)),entries.map(x=>x[1]),PAL2.slice(0,entries.length));
-  }
-
-  // Lista completa con TODOS los valores
-  const all={};
-  data.forEach(r=>{const n=getNov(r);all[n]=(all[n]||0)+1;});
-  const allE=Object.entries(all).sort((a,b)=>b[1]-a[1]);
-  const total=data.length;
-  const listEl=document.getElementById('nov-list-all'); if(!listEl) return;
-  listEl.innerHTML=allE.map(([k,v],i)=>{
-    const p=(v/total*100).toFixed(1);
-    const color=k==='SIN NOVEDAD'?'#10b981':k==='ENTREGADO PREVIAMENTE'?'#06b6d4':PAL2[i%PAL2.length];
-    return `<div class="nov-row">
-      <div class="nov-dot" style="background:${color}"></div>
-      <div class="nov-lbl" title="${k}">${k}</div>
-      <div class="bar-bg"><div class="bar-fill" style="width:${p}%;background:${color}"></div></div>
-      <div class="nov-cnt">${fmt(v)}</div>
-      <div class="nov-pct">${p}%</div>
-    </div>`;
-  }).join('');
+function buildTipoEfe(data){
+  const c={},e={};
+  data.forEach(r=>{const t=getTipo(r);c[t]=(c[t]||0)+1;if(isEf(r))e[t]=(e[t]||0)+1;});
+  const sorted=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,8);if(!sorted.length)return;
+  const labels=sorted.map(x=>x[0].slice(0,20));
+  const vals=sorted.map(x=>pct(e[x[0]]||0,x[1]));
+  mkBarH('ch-tipo-efe',labels,vals,vals.map(v=>v>=90?'#10b981':v>=70?'#f59e0b':'#ef4444'),true);
 }
 
-function buildNovCiudad(data){
-  const c={};
-  data.filter(isNov).forEach(r=>{const x=getCiudad(r);if(x!=='SIN CIUDAD')c[x]=(c[x]||0)+1;});
-  const top=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10); if(!top.length) return;
-  dc('ch-nov-ciudad'); const ctx=document.getElementById('ch-nov-ciudad'); if(!ctx) return;
-  CHARTS['ch-nov-ciudad']=new Chart(ctx.getContext('2d'),{
-    type:'bar',
-    data:{labels:top.map(x=>x[0].slice(0,14)),datasets:[{label:'Novedades',data:top.map(x=>x[1]),backgroundColor:'#ef4444',borderRadius:5}]},
-    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
-  });
-}
-
-function buildNovOrigen(data){
-  const nc=data.filter(r=>r._o==='NC'), cr=data.filter(r=>r._o==='CROSS');
-  mkBarV('ch-nov-origen',['NC','CROSS'],[
-    {label:'Con Novedad',data:[nc.filter(isNov).length,cr.filter(isNov).length],backgroundColor:['#ef4444','#f97316'],borderRadius:5},
-    {label:'Sin Novedad',data:[nc.filter(isEfect).length,cr.filter(isEfect).length],backgroundColor:['#10b981','#06b6d4'],borderRadius:5}
-  ]);
-}
-
-function buildNovTrend(data){
-  const g={};
-  data.forEach(r=>{const d=getFecha(r);if(!d)return;const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(!g[k])g[k]={t:0,n:0};g[k].t++;if(isNov(r))g[k].n++;});
-  const keys=Object.keys(g).sort(); if(!keys.length) return;
-  dc('ch-nov-trend'); const ctx=document.getElementById('ch-nov-trend'); if(!ctx) return;
-  CHARTS['ch-nov-trend']=new Chart(ctx.getContext('2d'),{
-    type:'line',data:{labels:keys,datasets:[{label:'% Con Novedad',data:keys.map(k=>pct(g[k].n,g[k].t)),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.08)',fill:true,tension:.4,pointRadius:4}]},
-    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}}}
-  });
-}
-
-// ================================================
-// MAPA
-// ================================================
-function buildMap(data){
-  if(!MAP_INST){
-    MAP_INST=L.map('map').setView([4.57,-74.30],6);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© CARTO',subdomains:'abcd',maxZoom:19}).addTo(MAP_INST);
-  }
-  MAP_LAYERS.forEach(l=>MAP_INST.removeLayer(l)); MAP_LAYERS=[];
-
+function buildTipoTable(data){
   const c={},e={},nv={},nc={},cr={};
   data.forEach(r=>{
-    const city=getCiudad(r); if(city==='SIN CIUDAD') return;
-    c[city]=(c[city]||0)+1;
-    if(isEfect(r)) e[city]=(e[city]||0)+1;
-    if(isNov(r))   nv[city]=(nv[city]||0)+1;
-    if(r._o==='NC') nc[city]=(nc[city]||0)+1; else cr[city]=(cr[city]||0)+1;
+    const t=getTipo(r);
+    c[t]=(c[t]||0)+1;
+    if(isEf(r))e[t]=(e[t]||0)+1;
+    if(isNv(r))nv[t]=(nv[t]||0)+1;
+    if(r._o==='NC')nc[t]=(nc[t]||0)+1; else cr[t]=(cr[t]||0)+1;
   });
+  const sorted=Object.entries(c).sort((a,b)=>b[1]-a[1]);
+  const tbody=document.getElementById('tipo-tbody');if(!tbody)return;
+  // Totales
+  const totTot=data.length,totEf=data.filter(isEf).length,totNv=data.filter(isNv).length;
+  tbody.innerHTML=sorted.map(([t,tot])=>{
+    const ef=e[t]||0,novC=nv[t]||0;
+    const pE=pct(ef,tot),pN=pct(novC,tot);
+    const cls=pE>=90?'bg':pE>=70?'by':'br';
+    return `<tr>
+      <td><b>${t.slice(0,25)}</b></td>
+      <td style="font-family:'DM Mono',monospace">${tot}</td>
+      <td style="font-family:'DM Mono',monospace">${ef}</td>
+      <td><span class="badge ${cls}">${pE.toFixed(1)}%</span></td>
+      <td style="font-family:'DM Mono',monospace;color:#ef4444">${novC}</td>
+      <td style="font-family:'DM Mono',monospace">${pN.toFixed(1)}%</td>
+      <td style="font-family:'DM Mono',monospace">${nc[t]||0}</td>
+      <td style="font-family:'DM Mono',monospace">${cr[t]||0}</td>
+    </tr>`;
+  }).join('')+`<tr style="background:#f8fafc;font-weight:700">
+    <td>TOTAL</td>
+    <td style="font-family:'DM Mono',monospace">${totTot}</td>
+    <td style="font-family:'DM Mono',monospace">${totEf}</td>
+    <td><span class="badge ${pct(totEf,totTot)>=90?'bg':pct(totEf,totTot)>=70?'by':'br'}">${pct(totEf,totTot).toFixed(1)}%</span></td>
+    <td style="font-family:'DM Mono',monospace;color:#ef4444">${totNv}</td>
+    <td style="font-family:'DM Mono',monospace">${pct(totNv,totTot).toFixed(1)}%</td>
+    <td style="font-family:'DM Mono',monospace">${data.filter(r=>r._o==='NC').length}</td>
+    <td style="font-family:'DM Mono',monospace">${data.filter(r=>r._o==='CROSS').length}</td>
+  </tr>`;
+}
 
+// ════════════════════════════════════════════════
+// BUILD NOVEDADES
+// ════════════════════════════════════════════════
+function buildNovedades(data){
+  // Solo registros con novedad REAL (cerrado con novedad)
+  const novData=data.filter(isNv);
+  const total=data.length;
+
+  // KPIs novedades
+  const tiposUniq=new Set(novData.map(r=>getNov(r)));
+  const ciudadesAfect=new Set(novData.map(r=>getCiu(r)).filter(c=>c!=='SIN CIUDAD'));
+  const espUniq=new Set(novData.map(r=>getEsp(r)).filter(e=>e&&e!=='SIN ESPECIALIDAD'));
+  document.getElementById('nk-tot').textContent=fmt(novData.length);
+  document.getElementById('nk-tipos').textContent=fmt(tiposUniq.size);
+  document.getElementById('nk-ciu').textContent=fmt(ciudadesAfect.size);
+  document.getElementById('nk-esp').textContent=fmt(espUniq.size);
+  document.getElementById('nk-pct').textContent=fP(pct(novData.length,total));
+
+  // Donut - solo novedades reales
+  const nc={};
+  novData.forEach(r=>{const n=getNov(r);nc[n]=(nc[n]||0)+1;});
+  const entries=Object.entries(nc).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  if(entries.length){
+    mkDonut('ch-nov-d',entries.map(x=>x[0].slice(0,22)),entries.map(x=>x[1]),P12.slice(0,entries.length));
+  } else {
+    const el=document.getElementById('ch-nov-d');
+    if(el&&el.parentElement)el.parentElement.innerHTML+='<div class="empty">Sin novedades en la selección actual</div>';
+  }
+
+  // Lista detallada
+  const allNc={}; // incluir SIN NOVEDAD para contexto
+  data.forEach(r=>{const n=getNov(r);allNc[n]=(allNc[n]||0)+1;});
+  const allE=Object.entries(allNc).sort((a,b)=>b[1]-a[1]);
+  const listEl=document.getElementById('nov-list');
+  if(listEl) listEl.innerHTML=allE.map(([k,v],i)=>{
+    const p=(v/total*100).toFixed(1);
+    const color=k==='SIN NOVEDAD'?'#10b981':k==='ENTREGADO PREVIAMENTE'?'#06b6d4':P12[i%P12.length];
+    return `<div class="nr"><div class="nd" style="background:${color}"></div>
+      <div class="nlbl" title="${k}">${k}</div>
+      <div class="bb2"><div class="bf" style="width:${p}%;background:${color}"></div></div>
+      <div class="nc">${fmt(v)}</div><div class="np">${p}%</div></div>`;
+  }).join('');
+
+  // Top ciudades con novedad
+  const cc={};
+  novData.forEach(r=>{const x=getCiu(r);if(x!=='SIN CIUDAD')cc[x]=(cc[x]||0)+1;});
+  const topC=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if(topC.length){
+    dc('ch-nov-ciu');const ctx=document.getElementById('ch-nov-ciu');if(ctx)
+    CHS['ch-nov-ciu']=new Chart(ctx.getContext('2d'),{
+      type:'bar',data:{labels:topC.map(x=>x[0].slice(0,14)),datasets:[{data:topC.map(x=>x[1]),backgroundColor:'#ef4444',borderRadius:5}]},
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+    });
+  }
+
+  // NC vs CROSS
+  const ncNov=data.filter(r=>r._o==='NC'), crNov=data.filter(r=>r._o==='CROSS');
+  mkBarV('ch-nov-og',['NC','CROSS'],[
+    {label:'Con Novedad',data:[ncNov.filter(isNv).length,crNov.filter(isNv).length],backgroundColor:['#ef4444','#f97316'],borderRadius:5},
+    {label:'Sin Novedad',data:[ncNov.filter(isEf).length,crNov.filter(isEf).length],backgroundColor:['#10b981','#06b6d4'],borderRadius:5}
+  ]);
+
+  // Por Especialidad
+  const esp={},espEf={};
+  data.forEach(r=>{const e=getEsp(r);if(!e||e==='SIN ESPECIALIDAD')return;esp[e]=(esp[e]||0)+1;if(isEf(r))espEf[e]=(espEf[e]||0)+1;});
+  const topEsp=Object.entries(esp).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if(topEsp.length){
+    dc('ch-nov-esp');const ctx=document.getElementById('ch-nov-esp');if(ctx){
+      // Novedades por especialidad
+      const espNov={};novData.forEach(r=>{const e=getEsp(r);if(e&&e!=='SIN ESPECIALIDAD')espNov[e]=(espNov[e]||0)+1;});
+      CHS['ch-nov-esp']=new Chart(ctx.getContext('2d'),{
+        type:'bar',
+        data:{labels:topEsp.map(x=>x[0].slice(0,16)),
+              datasets:[{label:'Total',data:topEsp.map(x=>x[1]),backgroundColor:'rgba(0,85,150,.3)',borderRadius:5},
+                        {label:'Con Novedad',data:topEsp.map(x=>espNov[x[0]]||0),backgroundColor:'#ef4444',borderRadius:5}]},
+        options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+          scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+      });
+    }
+    // Efectividad por especialidad
+    const valsEfe=topEsp.map(x=>pct(espEf[x[0]]||0,x[1]));
+    mkBarH('ch-esp-efe',topEsp.map(x=>x[0].slice(0,18)),valsEfe,valsEfe.map(v=>v>=90?'#10b981':v>=70?'#f59e0b':'#ef4444'),true);
+  } else {
+    ['ch-nov-esp','ch-esp-efe'].forEach(id=>{const el=document.getElementById(id);if(el&&el.parentElement)el.parentElement.innerHTML+='<div class="empty">Campo especialidad no encontrado en los datos</div>';});
+  }
+
+  // Tabla novedades por tipo_servicio
+  const tsNov={},tsTot={},tsTopNov={};
+  data.forEach(r=>{
+    const t=getTipo(r);
+    tsTot[t]=(tsTot[t]||0)+1;
+    if(isNv(r)){
+      tsNov[t]=(tsNov[t]||0)+1;
+      const n=getNov(r);
+      if(!tsTopNov[t])tsTopNov[t]={};
+      tsTopNov[t][n]=(tsTopNov[t][n]||0)+1;
+    }
+  });
+  // Especialidad más frecuente por tipo
+  const tipoEsp={};
+  data.forEach(r=>{const t=getTipo(r),e=getEsp(r);if(e&&e!=='SIN ESPECIALIDAD'){if(!tipoEsp[t])tipoEsp[t]={};tipoEsp[t][e]=(tipoEsp[t][e]||0)+1;}});
+  const tbody2=document.getElementById('nov-tipo-tbody');if(!tbody2)return;
+  tbody2.innerHTML=Object.entries(tsTot).sort((a,b)=>b[1]-a[1]).map(([t,tot])=>{
+    const nv=tsNov[t]||0,pN=pct(nv,tot);
+    const topN=tsTopNov[t]?Object.entries(tsTopNov[t]).sort((a,b)=>b[1]-a[1])[0]:null;
+    const topE=tipoEsp[t]?Object.entries(tipoEsp[t]).sort((a,b)=>b[1]-a[1])[0]:null;
+    return `<tr>
+      <td><b>${t.slice(0,22)}</b></td>
+      <td style="font-family:'DM Mono',monospace">${tot}</td>
+      <td style="font-family:'DM Mono',monospace;color:#ef4444">${nv}</td>
+      <td><span class="badge ${pN>=20?'br':pN>=10?'by':'bg'}">${pN.toFixed(1)}%</span></td>
+      <td style="font-size:11px;color:var(--muted)">${topN?topN[0].slice(0,25)+'('+topN[1]+')':'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${topE?topE[0].slice(0,20):'—'}</td>
+    </tr>`;
+  }).join('');
+
+  // Tendencia novedades
+  const gt={};
+  data.forEach(r=>{const d=getFecha(r);if(!d)return;const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(!gt[k])gt[k]={t:0,n:0};gt[k].t++;if(isNv(r))gt[k].n++;});
+  const tkeys=Object.keys(gt).sort();
+  if(tkeys.length){
+    dc('ch-nov-tr');const ctx=document.getElementById('ch-nov-tr');if(ctx)
+    CHS['ch-nov-tr']=new Chart(ctx.getContext('2d'),{
+      type:'line',
+      data:{labels:tkeys,datasets:[{label:'% Con Novedad',data:tkeys.map(k=>pct(gt[k].n,gt[k].t)),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.08)',fill:true,tension:.4,pointRadius:4}]},
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}}}
+    });
+  }
+}
+
+// ════════════════════════════════════════════════
+// MAPA
+// ════════════════════════════════════════════════
+function buildMap(data){
+  if(!MI){
+    MI=L.map('map').setView([4.57,-74.30],6);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© CARTO',subdomains:'abcd',maxZoom:19}).addTo(MI);
+  }
+  ML.forEach(l=>MI.removeLayer(l));ML=[];
+  const c={},e={},nv={},nc={},cr={};
+  data.forEach(r=>{const city=getCiu(r);if(city==='SIN CIUDAD')return;c[city]=(c[city]||0)+1;if(isEf(r))e[city]=(e[city]||0)+1;if(isNv(r))nv[city]=(nv[city]||0)+1;if(r._o==='NC')nc[city]=(nc[city]||0)+1;else cr[city]=(cr[city]||0)+1;});
   const maxV=Math.max(...Object.values(c),1);
   let mapped=0;
-
   Object.entries(c).forEach(([city,cnt])=>{
-    // Try exact match, then normalized
     const coords=COORDS[city]||COORDS[N(city).replace(/\s+/g,' ')];
-    if(!coords) return;
-    mapped++;
+    if(!coords)return; mapped++;
     const ef=pct(e[city]||0,cnt);
     const radius=Math.max(7000,Math.min(85000,(cnt/maxV)*80000+7000));
     const color=ef>=90?'#10b981':ef>=70?'#f59e0b':'#ef4444';
-    const circle=L.circle([coords.lat,coords.lng],{radius,fillColor:color,fillOpacity:.45,color,weight:1.5,opacity:.8}).addTo(MAP_INST);
-    circle.bindPopup(`<div style="font-family:'DM Sans',sans-serif;min-width:165px">
-      <b style="color:#005596;font-size:13px">${city}</b><br>
-      <span>📦 <b>${cnt}</b> guías totales</span><br>
-      <span>✅ <b>${ef.toFixed(1)}%</b> efectividad</span><br>
-      <span>⚠️ <b>${nv[city]||0}</b> con novedad</span><br>
-      <span style="font-size:11px;color:#64748b">NC: ${nc[city]||0} · CROSS: ${cr[city]||0}</span>
-    </div>`);
-    MAP_LAYERS.push(circle);
+    const circle=L.circle([coords.lat,coords.lng],{radius,fillColor:color,fillOpacity:.45,color,weight:1.5,opacity:.8}).addTo(MI);
+    circle.bindPopup(`<div style="font-family:'DM Sans',sans-serif;min-width:165px"><b style="color:#005596;font-size:13px">${city}</b><br>📦 <b>${cnt}</b> guías<br>✅ <b>${ef.toFixed(1)}%</b> efectividad<br>⚠️ <b>${nv[city]||0}</b> novedades<br><span style="font-size:11px;color:#64748b">NC: ${nc[city]||0} · CROSS: ${cr[city]||0}</span></div>`);
+    ML.push(circle);
   });
-  console.log(`Mapa: ${mapped} ciudades con coordenadas de ${Object.keys(c).length} totales`);
-  if(mapped===0) console.warn('Ciudades sin coordenadas:',[...Object.keys(c)].slice(0,10));
-
-  // Tabla resumen
-  const tbody=document.getElementById('map-tbody'); if(!tbody) return;
-  tbody.innerHTML=Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([city,cnt])=>{
-    const ef=pct(e[city]||0,cnt);
-    const sc=ef>=90?'s-g':ef>=70?'s-y':'s-r';
-    const bc=ef>=90?'b-green':ef>=70?'b-yellow':'b-red';
-    return `<tr>
-      <td><span class="sem ${sc}"></span>${city}</td>
-      <td style="font-family:'DM Mono',monospace">${cnt}</td>
-      <td style="font-family:'DM Mono',monospace">${e[city]||0}</td>
-      <td><span class="badge ${bc}">${ef.toFixed(1)}%</span></td>
-      <td style="font-family:'DM Mono',monospace;color:#ef4444">${nv[city]||0}</td>
-      <td style="font-family:'DM Mono',monospace">${nc[city]||0}</td>
-      <td style="font-family:'DM Mono',monospace">${cr[city]||0}</td>
-    </tr>`;
+  console.log(`Mapa: ${mapped}/${Object.keys(c).length} ciudades con coords`);
+  const tb=document.getElementById('map-tb');if(!tb)return;
+  tb.innerHTML=Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([city,cnt])=>{
+    const ef=pct(e[city]||0,cnt);const sc=ef>=90?'sg':ef>=70?'sy':'sr';const bc=ef>=90?'bg':ef>=70?'by':'br';
+    return `<tr><td><span class="sem ${sc}"></span>${city}</td><td style="font-family:'DM Mono',monospace">${cnt}</td><td style="font-family:'DM Mono',monospace">${e[city]||0}</td><td><span class="badge ${bc}">${ef.toFixed(1)}%</span></td><td style="font-family:'DM Mono',monospace;color:#ef4444">${nv[city]||0}</td><td style="font-family:'DM Mono',monospace">${nc[city]||0}</td><td style="font-family:'DM Mono',monospace">${cr[city]||0}</td></tr>`;
   }).join('');
 }
 
-// ================================================
+// ════════════════════════════════════════════════
 // DETALLE
-// ================================================
+// ════════════════════════════════════════════════
 function buildDetail(data){
-  DET_DATA=data.slice();
-  if(ST.search){
-    const q=N(ST.search);
-    DET_DATA=DET_DATA.filter(r=>Object.values(r).some(v=>N(String(v)).includes(q)));
-  }
-  document.getElementById('det-count').textContent=`${DET_DATA.length.toLocaleString('es-CO')} registros`;
-  DET_PAGE=1; renderDetail();
+  DD=data.slice();
+  if(ST.srch){const q=N(ST.srch);DD=DD.filter(r=>Object.values(r).some(v=>N(String(v)).includes(q)));}
+  document.getElementById('det-cnt').textContent=`${DD.length.toLocaleString('es-CO')} registros`;
+  DP=1;renderDet();
 }
-
-function renderDetail(){
-  const start=(DET_PAGE-1)*PG;
-  const page=DET_DATA.slice(start,start+PG);
-  if(!page.length){
-    document.getElementById('det-head').innerHTML='';
-    document.getElementById('det-body').innerHTML='<tr><td colspan="13" class="empty">Sin datos para mostrar</td></tr>';
-    document.getElementById('pgn').innerHTML=''; return;
-  }
+function renderDet(){
+  const page=DD.slice((DP-1)*PG,DP*PG);
+  if(!page.length){document.getElementById('det-hd').innerHTML='';document.getElementById('det-bd').innerHTML='<tr><td colspan="13" class="empty">Sin datos</td></tr>';document.getElementById('pgn').innerHTML='';return;}
   const cols=Object.keys(page[0]).filter(c=>c!=='_o').slice(0,12);
-  document.getElementById('det-head').innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'<th>Origen</th></tr>';
-  document.getElementById('det-body').innerHTML=page.map(row=>{
+  document.getElementById('det-hd').innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'<th>Origen</th></tr>';
+  document.getElementById('det-bd').innerHTML=page.map(row=>{
     return '<tr>'+cols.map(c=>{
       const v=(row[c]||'').toString().trim();
-      if(c===FIELDS.novedad){
-        const nv=N(v); const cls=nv===''||nv==='SIN NOVEDAD'?'b-green':nv==='ENTREGADO PREVIAMENTE'?'b-blue':'b-red';
-        return `<td><span class="badge ${cls}">${v||'SIN NOVEDAD'}</span></td>`;
-      }
+      if(c===F.nov){const nv=N(v);const cls=nv===''||nv==='SIN NOVEDAD'?'bg':nv==='ENTREGADO PREVIAMENTE'?'bb':'br';return `<td><span class="badge ${cls}">${v||'SIN NOVEDAD'}</span></td>`;}
       return `<td title="${v}">${v||'—'}</td>`;
-    }).join('')+`<td><span class="badge ${row._o==='NC'?'b-gray':'b-yellow'}">${row._o}</span></td></tr>`;
+    }).join('')+`<td><span class="badge ${row._o==='NC'?'bk':'by'}">${row._o}</span></td></tr>`;
   }).join('');
-
-  const tot=Math.ceil(DET_DATA.length/PG);
-  let pages=[]; for(let i=1;i<=tot;i++){ if(i===1||i===tot||Math.abs(i-DET_PAGE)<=2) pages.push(i); else if(Math.abs(i-DET_PAGE)===3) pages.push('…'); }
-  pages=[...new Set(pages)];
-  document.getElementById('pgn').innerHTML=pages.map(p=>p==='…'?`<span style="color:var(--muted);padding:0 3px">…</span>`:`<button class="pg-btn ${p===DET_PAGE?'on':''}" data-p="${p}">${p}</button>`).join('');
-  document.querySelectorAll('.pg-btn').forEach(b=>b.addEventListener('click',()=>{DET_PAGE=+b.dataset.p;renderDetail();}));
+  const tot=Math.ceil(DD.length/PG);
+  let ps=[];for(let i=1;i<=tot;i++){if(i===1||i===tot||Math.abs(i-DP)<=2)ps.push(i);else if(Math.abs(i-DP)===3)ps.push('…');}
+  ps=[...new Set(ps)];
+  document.getElementById('pgn').innerHTML=ps.map(p=>p==='…'?`<span style="color:var(--muted);padding:0 3px">…</span>`:`<button class="pb2 ${p===DP?'on':''}" data-p="${p}">${p}</button>`).join('');
+  document.querySelectorAll('.pb2').forEach(b=>b.addEventListener('click',()=>{DP=+b.dataset.p;renderDet();}));
 }
 
-// ================================================
+// ════════════════════════════════════════════════
 // POPULATE FILTERS
-// ================================================
+// ════════════════════════════════════════════════
 function populateFilters(data){
-  const cities=[...new Set(data.map(getCiudad).filter(c=>c&&c!=='SIN CIUDAD'))].sort();
+  const cities=[...new Set(data.map(getCiu).filter(c=>c&&c!=='SIN CIUDAD'))].sort();
+  const tipos=[...new Set(data.map(getTipo).filter(t=>t&&t!=='SIN TIPO'))].sort();
   const novs=[...new Set(data.map(r=>getNov(r)).filter(Boolean))].sort();
   document.getElementById('f-ciudad').innerHTML='<option value="">Todas las ciudades</option>'+cities.map(c=>`<option value="${c}">${c}</option>`).join('');
-  document.getElementById('f-novedad').innerHTML='<option value="">Todas las novedades</option>'+novs.map(n=>`<option value="${n}">${n}</option>`).join('');
+  document.getElementById('f-tipo').innerHTML='<option value="">Todos los tipos</option>'+tipos.map(t=>`<option value="${t}">${t}</option>`).join('');
+  document.getElementById('f-nov').innerHTML='<option value="">Todas las novedades</option>'+novs.map(n=>`<option value="${n}">${n}</option>`).join('');
 }
 
-// ================================================
+// ════════════════════════════════════════════════
 // UPDATE ALL
-// ================================================
+// ════════════════════════════════════════════════
 function update(){
   const data=getFiltered();
   const k=calcKPIs(data);
-  document.getElementById('rec-count').textContent=`${data.length.toLocaleString('es-CO')} registros`;
-  document.getElementById('hdr-update').textContent=new Date().toLocaleTimeString('es-CO');
+  document.getElementById('rc').textContent=`${data.length.toLocaleString('es-CO')} registros`;
+  document.getElementById('hdr-ts').textContent=new Date().toLocaleTimeString('es-CO');
   const S=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  S('kpi-total',fmt(k.total)); S('kpi-efect',fmt(k.efectivos)); S('kpi-pct',fmtP(k.pctEfect));
-  S('kpi-pe',k.avgPE!==null?k.avgPE.toFixed(1):'—'); S('kpi-rec',fmt(k.recursos)); S('kpi-nov',fmt(k.conNov));
-  S('hs-guias',fmt(k.total)); S('hs-efect',fmtP(k.pctEfect)); S('hs-rec',fmt(k.recursos));
-  buildTrend(data); buildMix(data); buildCiudadVol(data); buildCiudadEfect(data); buildNovBar(data);
-  buildNovDonut(data); buildNovCiudad(data); buildNovOrigen(data); buildNovTrend(data);
-  buildMap(data); buildDetail(data);
+  S('k-tot',fmt(k.tot));S('k-efe',fmt(k.ef));S('k-pct',fP(k.pEf));
+  S('k-pe',k.avgPE!==null?k.avgPE.toFixed(1):'—');S('k-rec',fmt(k.rec));S('k-nov',fmt(k.nv));
+  S('hs-g',fmt(k.tot));S('hs-e',fP(k.pEf));S('hs-r',fmt(k.rec));
+  buildTrend(data);buildMix(data);buildCiuVol(data);buildCiuEfe(data);
+  buildTipoVol(data);buildTipoEfe(data);buildTipoTable(data);
+  buildNovedades(data);buildMap(data);buildDetail(data);
 }
 
-// ================================================
-// FETCH
-// ================================================
-const setP=n=>{const e=document.getElementById('prog-bar');if(e)e.style.width=n+'%';};
-const setSub=t=>{const e=document.getElementById('loader-sub');if(e)e.textContent=t;};
+// ════════════════════════════════════════════════
+// FETCH — ESTRATEGIA ROBUSTA PARA NC Y CROSS
+// ════════════════════════════════════════════════
+const setP=n=>{const e=document.getElementById('pb');if(e)e.style.width=n+'%';};
+const setSub=t=>{const e=document.getElementById('ld-sub');if(e)e.textContent=t;};
 
 function fetchText(url){
-  return fetch(url,{mode:'cors',credentials:'omit'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();});
+  return fetch(url,{mode:'cors',credentials:'omit'})
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();});
 }
 
-function tryProxies(rawUrl){
-  let i=0;
-  const next=()=>{
-    if(i>=PROXIES.length) return Promise.resolve([]);
-    const url=PROXIES[i++](rawUrl);
-    setSub(`Proxy ${i}/${PROXIES.length}: ${rawUrl.slice(-35)}`);
-    return fetchText(url).then(txt=>{
-      if(txt.trim().startsWith('<')){console.warn('Proxy',i-1,'devolvió HTML');return next();}
-      const rows=Papa.parse(txt,{header:true,skipEmptyLines:true}).data;
-      if(rows.length>0){console.log(`Proxy ${i-1} OK → ${rows.length} filas`);return rows;}
-      return next();
-    }).catch(e=>{console.warn(`Proxy ${i-1} error:`,e.message);return next();});
-  };
-  return next();
+async function tryFetch(urls){
+  for(const rawUrl of urls){
+    for(let pi=0;pi<PROXIES.length;pi++){
+      const url=PROXIES[pi](rawUrl);
+      try{
+        setSub(`Probando: ${rawUrl.slice(-50)}…`);
+        const txt=await fetchText(url);
+        if(txt.trim().startsWith('<'))continue; // página HTML = error
+        const rows=Papa.parse(txt,{header:true,skipEmptyLines:true}).data;
+        if(rows.length>0){
+          console.log(`✅ URL: ${rawUrl.slice(-40)} | Proxy ${pi} | Filas: ${rows.length}`);
+          return rows;
+        }
+      }catch(err){console.warn(`Proxy ${pi} error:`,err.message);}
+    }
+  }
+  return [];
+}
+
+function fingerprint(rows){
+  if(!rows.length)return'';
+  return JSON.stringify(Object.keys(rows[0]).sort());
 }
 
 function showError(){
   document.getElementById('loader').innerHTML=`
-  <div style="text-align:center;padding:28px 20px;font-family:'DM Sans',sans-serif;max-width:500px">
-    <div style="font-size:42px;margin-bottom:10px">🔒</div>
+  <div style="text-align:center;padding:28px 22px;font-family:'DM Sans',sans-serif;max-width:520px">
+    <div style="font-size:40px;margin-bottom:10px">🔒</div>
     <div style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:8px">No se pudieron cargar los datos</div>
     <div style="font-size:12px;color:#64748b;margin-bottom:18px;line-height:1.7">
-      El Google Sheet debe estar <b>publicado en la web</b> como CSV.<br>
-      Confirma en: <b>Archivo → Compartir → Publicar en la web → Hoja → CSV</b>
+      Verifica que ambas hojas estén publicadas:<br>
+      <b>Archivo → Compartir → Publicar en la web → seleccionar hoja → CSV → Publicar</b><br>
+      <span style="color:#94a3b8">Abre la consola del navegador (F12) para ver los errores detallados</span>
     </div>
     <div style="margin-bottom:10px;text-align:left">
-      <label style="font-size:10px;font-weight:700;color:#64748b;display:block;margin-bottom:3px;text-transform:uppercase">URL hoja NC (gid=0)</label>
-      <input id="m-nc" value="${URL_NC}" style="width:100%;padding:7px 9px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:11px;font-family:'DM Mono',monospace"/>
+      <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:3px;text-transform:uppercase">URL hoja NC (gid=0)</div>
+      <input id="m-nc" value="${URLS_NC[0]}" style="width:100%;padding:7px 9px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:11px;font-family:'DM Mono',monospace"/>
     </div>
     <div style="margin-bottom:18px;text-align:left">
-      <label style="font-size:10px;font-weight:700;color:#64748b;display:block;margin-bottom:3px;text-transform:uppercase">URL hoja CROSS (gid=480391335)</label>
-      <input id="m-cr" value="${URL_CROSS}" style="width:100%;padding:7px 9px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:11px;font-family:'DM Mono',monospace"/>
+      <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:3px;text-transform:uppercase">URL hoja CROSS (gid=480391335)</div>
+      <input id="m-cr" value="${URLS_CROSS[0]}" style="width:100%;padding:7px 9px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:11px;font-family:'DM Mono',monospace"/>
     </div>
     <div style="display:flex;gap:8px;justify-content:center">
       <button onclick="retryManual()" style="padding:9px 20px;background:#005596;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🔄 Reintentar</button>
-      <button onclick="document.getElementById('loader').style.display='none'" style="padding:9px 16px;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Cerrar</button>
+      <button onclick="document.getElementById('loader').style.display='none'" style="padding:9px 14px;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;font-size:12px;cursor:pointer">Cerrar</button>
     </div>
   </div>`;
 }
 
 async function loadData(){
-  setP(5); setSub('Conectando…');
-  RAW_NC=await tryProxies(URL_NC); setP(45);
-  console.log('NC cargadas:',RAW_NC.length,'filas');
-  RAW_CROSS=await tryProxies(URL_CROSS); setP(78);
-  console.log('CROSS cargadas:',RAW_CROSS.length,'filas');
-  if(!RAW_NC.length&&!RAW_CROSS.length){showError();return;}
-  const all=[...RAW_NC,...RAW_CROSS];
+  setP(5);setSub('Conectando con Google Sheets…');
+
+  // NC — intentar varias URL variants
+  setSub('Cargando hoja DATA NC…');
+  RNC=await tryFetch(URLS_NC);
+  setP(40);
+  console.log(`NC: ${RNC.length} filas | fp: ${fingerprint(RNC).slice(0,60)}`);
+
+  // CROSS
+  setSub('Cargando hoja DATA CROSS…');
+  RCR=await tryFetch(URLS_CROSS);
+  setP(72);
+  console.log(`CROSS: ${RCR.length} filas | fp: ${fingerprint(RCR).slice(0,60)}`);
+
+  // Verificar que son hojas diferentes
+  if(RNC.length>0&&RCR.length>0&&fingerprint(RNC)===fingerprint(RCR)){
+    // Mismas columnas — verificar si primer registro es igual (misma hoja)
+    const firstNC=JSON.stringify(Object.values(RNC[0]).slice(0,3));
+    const firstCR=JSON.stringify(Object.values(RCR[0]).slice(0,3));
+    if(firstNC===firstCR){
+      console.warn('⚠️ NC y CROSS parecen ser la misma hoja. Marcando NC con _hoja=NC');
+    }
+  }
+
+  if(!RNC.length&&!RCR.length){showError();return;}
+
+  const all=[...RNC,...RCR];
   setSub(`Procesando ${all.length.toLocaleString('es-CO')} registros…`);
-  detectFields(all); setP(90);
-  populateFilters(all); setP(96);
-  update(); setP(100);
+  detectFields(all);setP(88);
+
+  // Fecha de último servicio
+  const lastDate=getLastDate(all);
+  if(lastDate){
+    document.getElementById('hdr-last').textContent=lastDate.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+  }
+
+  populateFilters(all);setP(95);
+  update();setP(100);
   setTimeout(()=>document.getElementById('loader').style.display='none',350);
 }
 
 async function retryManual(){
-  const nc=(document.getElementById('m-nc')||{}).value||URL_NC;
-  const cr=(document.getElementById('m-cr')||{}).value||URL_CROSS;
-  document.getElementById('loader').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px;font-family:'DM Sans',sans-serif"><div class="spinner"></div><div class="loader-msg">Reintentando…</div><div class="loader-sub" id="loader-sub"></div><div id="prog-wrap"><div id="prog-bar" style="height:4px;background:#005596;border-radius:99px;width:0;transition:width .3s"></div></div></div>`;
-  RAW_NC=await tryProxies(nc);
-  RAW_CROSS=await tryProxies(cr);
-  const all=[...RAW_NC,...RAW_CROSS];
+  const nc=(document.getElementById('m-nc')||{}).value||URLS_NC[0];
+  const cr=(document.getElementById('m-cr')||{}).value||URLS_CROSS[0];
+  document.getElementById('loader').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px;font-family:'DM Sans',sans-serif"><div class="spinner"></div><div id="ld-msg">Reintentando…</div><div class="loader-sub" id="ld-sub"></div><div id="pw"><div id="pb" style="height:4px;background:#005596;border-radius:99px;width:0;transition:width .3s"></div></div></div>`;
+  RNC=await tryFetch([nc]);RCR=await tryFetch([cr]);
+  const all=[...RNC,...RCR];
   if(!all.length){showError();return;}
-  detectFields(all); populateFilters(all); update();
-  document.getElementById('loader').style.display='none';
+  detectFields(all);populateFilters(all);
+  const ld=getLastDate(all);if(ld)document.getElementById('hdr-last').textContent=ld.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+  update();document.getElementById('loader').style.display='none';
 }
 
-// ================================================
+// ════════════════════════════════════════════════
 // EVENTS
-// ================================================
+// ════════════════════════════════════════════════
 document.querySelectorAll('.tab').forEach(t=>{
   t.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
     document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
-    t.classList.add('on');
-    document.getElementById('page-'+t.dataset.tab).classList.add('on');
-    if(t.dataset.tab==='mapa') setTimeout(()=>MAP_INST&&MAP_INST.invalidateSize(),200);
+    t.classList.add('on');document.getElementById('page-'+t.dataset.tab).classList.add('on');
+    if(t.dataset.tab==='mapa')setTimeout(()=>MI&&MI.invalidateSize(),200);
   });
 });
 
 document.querySelectorAll('.pill[data-o]').forEach(p=>{
   p.addEventListener('click',()=>{
     p.classList.toggle('on');
-    const ncOn=document.querySelector('.pill[data-o="NC"]').classList.contains('on');
-    const crOn=document.querySelector('.pill[data-o="CROSS"]').classList.contains('on');
-    // No permitir que ambos estén desactivados
-    if(!ncOn&&!crOn){ p.classList.add('on'); return; }
-    ST.nc=ncOn; ST.cross=crOn; update();
+    const nOn=document.querySelector('.pill[data-o="NC"]').classList.contains('on');
+    const cOn=document.querySelector('.pill[data-o="CROSS"]').classList.contains('on');
+    if(!nOn&&!cOn){p.classList.add('on');return;}
+    ST.nc=nOn;ST.cross=cOn;update();
   });
 });
 
 document.getElementById('f-ciudad').addEventListener('change',e=>{ST.ciudad=e.target.value;update();});
-document.getElementById('f-novedad').addEventListener('change',e=>{ST.novedad=e.target.value;update();});
+document.getElementById('f-tipo').addEventListener('change',e=>{ST.tipo=e.target.value;update();});
+document.getElementById('f-nov').addEventListener('change',e=>{ST.nov=e.target.value;update();});
 document.getElementById('f-fi').addEventListener('change',e=>{ST.fi=e.target.value?new Date(e.target.value):null;update();});
 document.getElementById('f-ff').addEventListener('change',e=>{ST.ff=e.target.value?new Date(e.target.value):null;update();});
-document.getElementById('srch').addEventListener('input',e=>{ST.search=e.target.value;buildDetail(getFiltered());});
+document.getElementById('srch').addEventListener('input',e=>{ST.srch=e.target.value;buildDetail(getFiltered());});
 document.getElementById('btn-reset').addEventListener('click',()=>{
-  ST={nc:true,cross:true,ciudad:'',novedad:'',fi:null,ff:null,search:''};
-  ['f-ciudad','f-novedad','f-fi','f-ff','srch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',fi:null,ff:null,srch:''};
+  ['f-ciudad','f-tipo','f-nov','f-fi','f-ff','srch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.querySelectorAll('.pill[data-o]').forEach(p=>p.classList.add('on'));
   update();
 });
 
-// ================================================
 // BOOT
-// ================================================
 loadData();
 </script>
 </body>
