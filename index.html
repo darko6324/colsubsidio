@@ -128,6 +128,13 @@ tbody td{padding:8px 11px;max-width:200px;overflow:hidden;text-overflow:ellipsis
 
 .empty{text-align:center;padding:36px;color:var(--muted);font-size:13px}
 .section-title{font-size:13px;font-weight:700;color:var(--text);margin:18px 0 10px;border-left:3px solid var(--blue);padding-left:10px}
+
+/* SORTABLE TABLES */
+thead th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+thead th.sortable:hover{color:var(--blue);background:#f8fafc}
+thead th.sortable::after{content:' ⇅';opacity:.35;font-size:9px}
+thead th.sortable.asc::after{content:' ↑';opacity:1;color:var(--blue)}
+thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
 </style>
 </head>
 <body>
@@ -171,10 +178,8 @@ tbody td{padding:8px 11px;max-width:200px;overflow:hidden;text-overflow:ellipsis
   <select class="fsel" id="f-tipo"><option value="">Todos</option></select>
   <span class="fl">Novedad</span>
   <select class="fsel" id="f-nov"><option value="">Todas</option></select>
-  <span class="fl">Desde</span>
-  <input type="date" class="fin" id="f-fi"/>
-  <span class="fl">Hasta</span>
-  <input type="date" class="fin" id="f-ff"/>
+  <span class="fl">Mes</span>
+  <select class="fsel" id="f-mes"><option value="">Todos los meses</option></select>
   <button class="brst" id="btn-reset">↺ Limpiar</button>
   <span id="rc"></span>
 </div>
@@ -195,13 +200,13 @@ tbody td{padding:8px 11px;max-width:200px;overflow:hidden;text-overflow:ellipsis
     <div class="kpi" style="--ac:var(--blue);--ac-bg:var(--blue-lt)"><div class="kpi-ic">📦</div><div class="kpi-v" id="k-tot">—</div><div class="kpi-l">Total Guías</div></div>
     <div class="kpi" style="--ac:var(--green);--ac-bg:#d1fae5"><div class="kpi-ic">✅</div><div class="kpi-v" id="k-efe">—</div><div class="kpi-l">Efectivos</div></div>
     <div class="kpi" style="--ac:var(--yellow);--ac-bg:#fef9e7"><div class="kpi-ic">📈</div><div class="kpi-v" id="k-pct">—</div><div class="kpi-l">% Efectividad</div></div>
-    <div class="kpi" style="--ac:var(--purple);--ac-bg:#ede9fe"><div class="kpi-ic">⏱️</div><div class="kpi-v" id="k-pe">—</div><div class="kpi-l">Promedio PE</div><div class="kpi-sub" id="k-pe-u">días</div></div>
+    <div class="kpi" style="--ac:var(--purple);--ac-bg:#ede9fe"><div class="kpi-ic">⏱️</div><div class="kpi-v" id="k-pe">—</div><div class="kpi-l">Promedio PE</div><div class="kpi-sub" id="k-pe-u">días hábiles CO</div></div>
     <div class="kpi" style="--ac:var(--cyan);--ac-bg:#e0f7fa"><div class="kpi-ic">🚛</div><div class="kpi-v" id="k-rec">—</div><div class="kpi-l">Recursos Únicos</div></div>
     <div class="kpi" style="--ac:var(--red);--ac-bg:#fee2e2"><div class="kpi-ic">⚠️</div><div class="kpi-v" id="k-nov">—</div><div class="kpi-l">Con Novedad</div></div>
   </div>
 
   <div class="c2">
-    <div class="card"><div class="ct">Efectividad por Período <span class="proj-badge">⚡ +2 meses proyectados</span></div><div class="cs">% sin novedad vs total guías — línea punteada = proyección</div><canvas id="ch-trend"></canvas></div>
+    <div class="card"><div class="ct">Efectividad por Período <span class="proj-badge">🔮 Proyección hasta dic año actual</span></div><div class="cs">Línea sólida = datos reales · Línea punteada = proyección · La línea vertical naranja marca el cierre del último mes con datos</div><canvas id="ch-trend" style="max-height:280px"></canvas><div id="ch-trend-info" style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;padding:0 2px"></div></div>
     <div class="card"><div class="ct">Mix NC vs CROSS</div><div class="cs">Distribución de guías por modelo</div><canvas id="ch-mix"></canvas></div>
   </div>
 
@@ -220,7 +225,7 @@ tbody td{padding:8px 11px;max-width:200px;overflow:hidden;text-overflow:ellipsis
   <div class="card">
     <div class="ct">Totales y Efectividad por Tipo de Servicio</div>
     <div class="cs">Resumen consolidado por tipo — incluye proyección para columnas de tendencia</div>
-    <div class="tw"><table><thead><tr><th>Tipo Servicio</th><th>Total</th><th>Efectivos</th><th>% Efect.</th><th>Con Novedad</th><th>% Novedad</th><th>NC</th><th>CROSS</th></tr></thead><tbody id="tipo-tbody"></tbody></table></div>
+    <div class="tw"><table><thead id="tipo-thead"><tr><th>Tipo Servicio</th><th>Total</th><th>Efectivos</th><th>% Efect.</th><th>Con Novedad</th><th>% Novedad</th><th>NC</th><th>CROSS</th></tr></thead><tbody id="tipo-tbody"></tbody></table></div>
   </div>
 </section>
 
@@ -262,7 +267,7 @@ tbody td{padding:8px 11px;max-width:200px;overflow:hidden;text-overflow:ellipsis
   <div class="card">
     <div class="ct">Novedades por Tipo de Servicio</div>
     <div class="cs">Detalle de novedades agrupadas por tipo_servicio y cluster_novedad</div>
-    <div class="tw"><table><thead><tr><th>Tipo Servicio</th><th>Total</th><th>Con Novedad</th><th>% Novedad</th><th>Top Novedad</th><th>Especialidad</th></tr></thead><tbody id="nov-tipo-tbody"></tbody></table></div>
+    <div class="tw"><table><thead id="nov-tipo-thead"><tr><th>Tipo Servicio</th><th>Total</th><th>Con Novedad</th><th>% Novedad</th><th>Top Novedad</th><th>Especialidad</th></tr></thead><tbody id="nov-tipo-tbody"></tbody></table></div>
   </div>
 
   <div class="card"><div class="ct">Tendencia Novedades por Mes</div><div class="cs">% de guías con novedad — tendencia mensual</div><canvas id="ch-nov-tr" style="max-height:220px"></canvas></div>
@@ -277,7 +282,7 @@ tbody td{padding:8px 11px;max-width:200px;overflow:hidden;text-overflow:ellipsis
   </div>
   <div class="card">
     <div class="ct">Resumen por Ciudad</div>
-    <div class="tw"><table><thead><tr><th>Ciudad</th><th>Total</th><th>Efectivos</th><th>% Efect.</th><th>Novedades</th><th>NC</th><th>CROSS</th></tr></thead><tbody id="map-tb"></tbody></table></div>
+    <div class="tw"><table><thead id="map-thead"><tr><th>Ciudad</th><th>Total</th><th>Efectivos</th><th>% Efect.</th><th>Novedades</th><th>NC</th><th>CROSS</th></tr></thead><tbody id="map-tb"></tbody></table></div>
   </div>
 </section>
 
@@ -322,7 +327,7 @@ const PROXIES=[
 let RNC=[],RCR=[],F={};
 let CHS={},MI=null,ML=[];
 let DD=[],DP=1; const PG=25;
-let ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',fi:null,ff:null,srch:''};
+let ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',mes:'',srch:''};
 
 // ════════════════════════════════════════════════
 // CIUDAD COORDS
@@ -372,6 +377,137 @@ const pct=(a,b)=>b>0?(a/b*100):0;
 const fP=n=>isNaN(n)?'—':n.toFixed(1)+'%';
 const gv=(r,f)=>f?(r[f]||'').toString().trim():'';
 
+// ════════════════════════════════════════════════
+// SORTABLE TABLE UTILITY
+// ════════════════════════════════════════════════
+function makeSortable(tbodyId,headerId){
+  const thead=document.getElementById(headerId);
+  const tbody=document.getElementById(tbodyId);
+  if(!thead||!tbody)return;
+  // State per table
+  if(!thead._sortState)thead._sortState={col:-1,dir:1};
+  const ths=thead.querySelectorAll('th');
+  ths.forEach((th,i)=>{
+    th.classList.add('sortable');
+    th.addEventListener('click',()=>{
+      const st=thead._sortState;
+      if(st.col===i){st.dir*=-1;}else{st.col=i;st.dir=1;}
+      // Update arrow classes
+      ths.forEach(h=>{h.classList.remove('asc','desc');});
+      th.classList.add(st.dir===1?'asc':'desc');
+      // Sort rows
+      const rows=[...tbody.querySelectorAll('tr')];
+      rows.sort((a,b)=>{
+        const av=(a.cells[i]||{}).textContent||'';
+        const bv=(b.cells[i]||{}).textContent||'';
+        // Try numeric (strip %, commas, K, M)
+        const toNum=s=>{const n=parseFloat(s.replace(/[%,KkMm\s]/g,'').replace(',','.'));return isNaN(n)?null:n;};
+        const an=toNum(av),bn=toNum(bv);
+        if(an!==null&&bn!==null)return st.dir*(an-bn);
+        return st.dir*av.localeCompare(bv,'es',{sensitivity:'base'});
+      });
+      rows.forEach(r=>tbody.appendChild(r));
+    });
+  });
+}
+
+// ════════════════════════════════════════════════
+// FESTIVOS COLOMBIA — Ley Emiliani + fijos
+// ════════════════════════════════════════════════
+function easterSunday(y){
+  // Algoritmo de Butcher
+  const a=y%19,b=Math.floor(y/100),c=y%100;
+  const d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
+  const g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30;
+  const i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451);
+  const month=Math.floor((h+l-7*m+114)/31);
+  const day=((h+l-7*m+114)%31)+1;
+  return new Date(y,month-1,day);
+}
+
+// Traslado al lunes siguiente si cae entre martes y domingo (Ley Emiliani)
+function nextMonday(d){
+  const dow=d.getDay(); // 0=dom,1=lun
+  if(dow===1)return new Date(d);
+  const diff=dow===0?1:8-dow;
+  const r=new Date(d);r.setDate(d.getDate()+diff);return r;
+}
+
+function getColombiaHolidays(y){
+  const fixed=[
+    new Date(y,0,1),   // Año Nuevo
+    new Date(y,4,1),   // Día del Trabajo
+    new Date(y,6,20),  // Independencia
+    new Date(y,7,7),   // Batalla de Boyacá
+    new Date(y,11,8),  // Inmaculada Concepción
+    new Date(y,11,25), // Navidad
+  ];
+  const easter=easterSunday(y);
+  const addDays=(d,n)=>{const r=new Date(d);r.setDate(d.getDate()+n);return r;};
+  // Festivos fijos a Semana Santa (no se trasladan)
+  const holyWeek=[
+    addDays(easter,-7), // Domingo de Ramos
+    addDays(easter,-3), // Jueves Santo
+    addDays(easter,-2), // Viernes Santo
+    easter,             // Domingo de Resurrección
+  ];
+  // Emiliani (traslado a lunes)
+  const emiliani=[
+    new Date(y,0,6),   // Reyes Magos
+    new Date(y,2,19),  // San José
+    addDays(easter,39),// Ascensión del Señor
+    addDays(easter,60),// Corpus Christi
+    addDays(easter,68),// Sagrado Corazón
+    new Date(y,5,29),  // San Pedro y San Pablo
+    new Date(y,7,15),  // Asunción de la Virgen
+    new Date(y,9,12),  // Día de la Raza
+    new Date(y,10,1),  // Todos los Santos
+    new Date(y,10,11), // Independencia de Cartagena
+  ].map(nextMonday);
+
+  const all=[...fixed,...holyWeek,...emiliani];
+  // Convertir a strings YYYY-MM-DD para lookup rápido
+  return new Set(all.map(d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`));
+}
+
+const holidayCache={};
+function isHolidayCO(d){
+  const y=d.getFullYear();
+  if(!holidayCache[y])holidayCache[y]=getColombiaHolidays(y);
+  const key=`${y}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return holidayCache[y].has(key);
+}
+
+// Días hábiles entre dos fechas (excluye sábados, domingos y festivos CO)
+function businessDaysCO(d1,d2){
+  if(!d1||!d2||isNaN(d1)||isNaN(d2))return null;
+  const start=d1<d2?new Date(d1):new Date(d2);
+  const end  =d1<d2?new Date(d2):new Date(d1);
+  const sign =d1<=d2?1:-1;
+  start.setHours(0,0,0,0);end.setHours(0,0,0,0);
+  let count=0,cur=new Date(start);
+  cur.setDate(cur.getDate()+1); // no contar el día de inicio
+  while(cur<=end){
+    const dow=cur.getDay();
+    if(dow!==0&&dow!==6&&!isHolidayCO(cur))count++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return sign*count;
+}
+
+function parseDate(raw){
+  if(!raw)return null;
+  const s=raw.toString().trim();
+  // DD/MM/YYYY o DD-MM-YYYY o DD.MM.YYYY
+  const m1=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+  if(m1){const y=m1[3].length===2?'20'+m1[3]:m1[3];return new Date(`${y}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`);}
+  // YYYY-MM-DD
+  const m2=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m2)return new Date(s.slice(0,10));
+  const d=new Date(s);return isNaN(d)?null:d;
+}
+
 function detectFields(data){
   if(!data.length)return;
   const cols=Object.keys(data[0]);
@@ -388,6 +524,10 @@ function detectFields(data){
   F.tipo =find('tipo_servicio','tipo_de_servicio','tipo','servicio','modalidad','tipo_guia');
   F.esp  =find('especialidad','especialidad_servicio','esp','rama','categoria','linea');
   F.estado=find('estado','estado_guia','estado_servicio','estado_entrega');
+  // Fechas para cálculo de días hábiles PE (col M = cierre, col K = aceptacion)
+  F.fechaCierre=find('fecha_cierre_o_congelado','fecha_cierre','fecha_congelado','cierre','congelado','fecha_fin','fecha_cierre_congelado');
+  F.fechaAcept =find('fecha_aceptacion_1','fecha_aceptacion','aceptacion_1','aceptacion','fecha_inicio_pe','fecha_inicio');
+  console.log('%cFechas PE hábiles','color:#8b5cf6;font-weight:bold','Cierre:',F.fechaCierre,'Acept:',F.fechaAcept);
   console.log('%cCampos detectados','color:#005596;font-weight:bold',F);
   console.log('Cols disponibles:',cols);
   const sNov=[...new Set(data.slice(0,300).map(r=>gv(r,F.nov)).filter(Boolean))].slice(0,20);
@@ -431,8 +571,7 @@ function getFiltered(){
   if(ST.ciudad) d=d.filter(r=>getCiu(r)===ST.ciudad);
   if(ST.tipo)   d=d.filter(r=>getTipo(r)===ST.tipo);
   if(ST.nov)    d=d.filter(r=>getNov(r)===ST.nov);
-  if(ST.fi) d=d.filter(r=>{const x=getFecha(r);return x&&x>=ST.fi;});
-  if(ST.ff) d=d.filter(r=>{const x=getFecha(r);return x&&x<=ST.ff;});
+  if(ST.mes) d=d.filter(r=>{const x=getFecha(r);if(!x)return false;const k=`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`;return k===ST.mes;});
   return d;
 }
 
@@ -441,33 +580,76 @@ function calcKPIs(data){
   const ef=data.filter(isEf).length;
   const nv=data.filter(isNv).length;
   const rec=new Set(data.map(r=>gv(r,F.placa)).filter(Boolean));
-  const pe=data.map(r=>parseFloat(gv(r,F.pe))).filter(v=>!isNaN(v)&&v>0);
-  return{tot,ef,nv,pEf:pct(ef,tot),rec:rec.size,avgPE:pe.length?pe.reduce((a,b)=>a+b)/pe.length:null};
+  // Calcular dias habiles PE: fecha_cierre_o_congelado (M) - fecha_aceptacion_1 (K)
+  let peVals=[];
+  if(F.fechaCierre&&F.fechaAcept){
+    data.forEach(r=>{
+      const d1=parseDate(gv(r,F.fechaAcept));
+      const d2=parseDate(gv(r,F.fechaCierre));
+      const dias=businessDaysCO(d1,d2);
+      if(dias!==null&&dias>=0&&dias<365)peVals.push(dias);
+    });
+  }
+  // Fallback: usar columna pe si no hay fechas detectadas
+  if(!peVals.length&&F.pe){
+    peVals=data.map(r=>parseFloat(gv(r,F.pe))).filter(v=>!isNaN(v)&&v>0);
+  }
+  return{tot,ef,nv,pEf:pct(ef,tot),rec:rec.size,
+    avgPE:peVals.length?peVals.reduce((a,b)=>a+b)/peVals.length:null,
+    peFromDates:!!(F.fechaCierre&&F.fechaAcept&&peVals.length)};
 }
 
 // ════════════════════════════════════════════════
-// PROYECCION LINEAL (últimos 3 meses → +2 meses)
+// PROYECCION LINEAL — hasta fin del año actual
 // ════════════════════════════════════════════════
-function projectValues(keys,vals,n=2){
-  if(keys.length<2)return{keys:[],vals:[]};
-  // Regresión lineal simple
-  const len=Math.min(keys.length,4); // usar últimos 4 puntos
+function linearRegression(xs,ys){
+  const n=xs.length,sx=xs.reduce((a,b)=>a+b,0),sy=ys.reduce((a,b)=>a+b,0);
+  const sxy=xs.reduce((a,x,i)=>a+x*ys[i],0),sx2=xs.reduce((a,x)=>a+x*x,0);
+  const denom=n*sx2-sx*sx;
+  const m=denom?((n*sxy-sx*sy)/denom):0;
+  const b=(sy-m*sx)/n;
+  return{m,b};
+}
+
+// Devuelve meses futuros desde lastKey hasta el último mes del año en curso
+function futureMonthsToYearEnd(lastKey){
+  const [y,mo]=lastKey.split('-').map(Number);
+  const curYear=new Date().getFullYear();
+  // Si el último dato es de un año anterior, proyectar hasta dic del año actual
+  const endYear=Math.max(y,curYear);
+  const endMonth=12;
+  const keys=[];
+  let cy=y,cm=mo+1;
+  while(cy<endYear||(cy===endYear&&cm<=endMonth)){
+    keys.push(`${cy}-${String(cm).padStart(2,'0')}`);
+    cm++;if(cm>12){cm=1;cy++;}
+  }
+  return keys;
+}
+
+function projectValues(keys,vals,_n){
+  if(keys.length<2)return{keys:[],vals:[],totVals:[]};
+  const futKeys=futureMonthsToYearEnd(keys[keys.length-1]);
+  if(!futKeys.length)return{keys:[],vals:[],totVals:[]};
+  // Usar hasta 6 meses reales más recientes para la regresión
+  const len=Math.min(keys.length,6);
   const xs=Array.from({length:len},(_,i)=>i);
   const ys=vals.slice(-len);
-  const sx=xs.reduce((a,b)=>a+b,0),sy=ys.reduce((a,b)=>a+b,0);
-  const sxy=xs.reduce((a,i)=>a+i*ys[i],0),sx2=xs.reduce((a,i)=>a+i*i,0);
-  const m=(len*sxy-sx*sy)/(len*sx2-sx*sx)||0;
-  const b=(sy-m*sx)/len;
-  // Generar meses futuros
-  const lastKey=keys[keys.length-1];
-  const [y,mo]=lastKey.split('-').map(Number);
-  const futKeys=[],futVals=[];
-  for(let i=1;i<=n;i++){
-    const nm=mo+i;const ny=y+(nm>12?Math.floor((nm-1)/12):0);
-    futKeys.push(`${ny}-${String(nm>12?nm-12:nm).padStart(2,'0')}`);
-    futVals.push(Math.max(0,Math.min(100,b+m*(len-1+i))));
-  }
-  return{keys:futKeys,vals:futVals};
+  const{m,b}=linearRegression(xs,ys);
+  const projVals=futKeys.map((_,i)=>Math.max(0,Math.min(100,b+m*(len-1+i+1))));
+  return{keys:futKeys,vals:projVals,totVals:[]};
+}
+
+// Proyección de volumen (guías) — regresión lineal sin clamp de 100
+function projectTotals(keys,tots){
+  if(keys.length<2)return[];
+  const futKeys=futureMonthsToYearEnd(keys[keys.length-1]);
+  if(!futKeys.length)return[];
+  const len=Math.min(keys.length,6);
+  const xs=Array.from({length:len},(_,i)=>i);
+  const ys=tots.slice(-len);
+  const{m,b}=linearRegression(xs,ys);
+  return futKeys.map((_,i)=>Math.max(0,Math.round(b+m*(len-1+i+1))));
 }
 
 // ════════════════════════════════════════════════
@@ -514,27 +696,108 @@ function buildTrend(data){
   const keys=Object.keys(g).sort();if(!keys.length)return;
   const pcts=keys.map(k=>pct(g[k].e,g[k].t));
   const tots=keys.map(k=>g[k].t);
+
+  // Calcular proyección hasta fin del año actual
   const proj=projectValues(keys,pcts);
+  const projTots=projectTotals(keys,tots);
+
+  // Detectar mes del último dato real para marcarlo como "cierre mes en curso"
+  const lastRealKey=keys[keys.length-1];
+  const todayKey=`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  const isCurrentMonthPartial=lastRealKey===todayKey;
+
+  // Construir etiquetas: reales + proyección
+  const allLabels=[...keys,...proj.keys];
+  const nReal=keys.length, nProj=proj.keys.length;
+
+  // Dataset efectividad real
+  const efReal=[...pcts,...Array(nProj).fill(null)];
+  // Dataset efectividad proyectada (arranca desde el último real)
+  const efProj=[...Array(nReal-1).fill(null), pcts[nReal-1], ...proj.vals];
+  // Dataset guías reales
+  const totReal=[...tots,...Array(nProj).fill(null)];
+  // Dataset guías proyectadas
+  const totProj=[...Array(nReal-1).fill(null), tots[nReal-1], ...projTots];
+
+  // Anotación vertical en el último mes real
+  const splitIdx=nReal-1;
 
   dc('ch-trend');const ctx=document.getElementById('ch-trend');if(!ctx)return;
   CHS['ch-trend']=new Chart(ctx.getContext('2d'),{
     type:'line',
     data:{
-      labels:[...keys,...proj.keys],
+      labels:allLabels,
       datasets:[
-        {label:'% Efectividad',data:[...pcts,...Array(proj.keys.length).fill(null)],borderColor:'#005596',backgroundColor:'rgba(0,85,150,.08)',fill:true,tension:.4,pointRadius:4,yAxisID:'y',pointBackgroundColor:'#005596'},
-        {label:'Proyección',data:[...Array(keys.length-1).fill(null),pcts[pcts.length-1],...proj.vals],borderColor:'#005596',borderDash:[6,4],backgroundColor:'transparent',fill:false,tension:.3,pointRadius:3,yAxisID:'y',pointBackgroundColor:'#FFD100',pointBorderColor:'#005596'},
-        {label:'Guías',data:[...tots,...Array(proj.keys.length).fill(null)],borderColor:'#FFD100',borderDash:[4,3],backgroundColor:'rgba(255,209,0,.06)',fill:true,tension:.4,pointRadius:3,yAxisID:'y1'}
+        // Efectividad real
+        {label:'% Efectividad (real)',data:efReal,
+          borderColor:'#005596',backgroundColor:'rgba(0,85,150,.10)',
+          fill:true,tension:.4,pointRadius:4,yAxisID:'y',
+          pointBackgroundColor:'#005596',pointBorderColor:'#fff',pointBorderWidth:2,
+          borderWidth:2.5},
+        // Efectividad proyectada
+        {label:'% Efectividad (proy.)',data:efProj,
+          borderColor:'#005596',borderDash:[7,4],backgroundColor:'transparent',
+          fill:false,tension:.35,pointRadius:3,yAxisID:'y',
+          pointBackgroundColor:'#FFD100',pointBorderColor:'#005596',pointBorderWidth:2,
+          borderWidth:2},
+        // Guías reales
+        {label:'Guías (real)',data:totReal,
+          borderColor:'#FFD100',backgroundColor:'rgba(255,209,0,.08)',
+          fill:true,tension:.4,pointRadius:3,yAxisID:'y1',
+          pointBackgroundColor:'#FFD100',borderWidth:2},
+        // Guías proyectadas
+        {label:'Guías (proy.)',data:totProj,
+          borderColor:'#f59e0b',borderDash:[7,4],backgroundColor:'transparent',
+          fill:false,tension:.35,pointRadius:3,yAxisID:'y1',
+          pointBackgroundColor:'#fff',pointBorderColor:'#f59e0b',pointBorderWidth:2,
+          borderWidth:2},
       ]
     },
-    options:{responsive:true,
-      plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}},
+        tooltip:{
+          mode:'index',intersect:false,
+          callbacks:{
+            title:tt=>{
+              const lbl=tt[0].label;
+              const isProj=proj.keys.includes(lbl);
+              const isCierre=lbl===lastRealKey&&isCurrentMonthPartial;
+              return lbl+(isProj?' 🔮 Proyectado':isCierre?' ⏳ Cierre mes en curso':'');
+            },
+            label:tt=>{
+              if(tt.raw===null)return null;
+              const isEfAxis=tt.datasetIndex<=1;
+              return ` ${tt.dataset.label}: ${isEfAxis?tt.raw.toFixed(1)+'%':tt.raw.toLocaleString('es-CO')}`;
+            }
+          }
+        },
+        // Línea vertical divisoria real vs proyección
+        annotation:undefined
+      },
       scales:{
         y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},
-        y1:{position:'right',beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{display:false}},
-        x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}
-      }}
+        y1:{position:'right',beginAtZero:true,ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v,font:{family:'DM Mono',size:10}},grid:{display:false}},
+        x:{ticks:{font:{family:'DM Sans',size:10},maxRotation:45},grid:{
+          color:ctx2=>{
+            // Línea divisoria naranja en el índice splitIdx
+            if(ctx2.index===splitIdx)return'rgba(245,158,11,0.5)';
+            return'#f1f5f9';
+          },
+          lineWidth:ctx2=>ctx2.index===splitIdx?2:1
+        }}
+      }
+    }
   });
+
+  // Añadir etiqueta "Cierre mes en curso" y "Proyección →" debajo del gráfico
+  const info=document.getElementById('ch-trend-info');
+  if(info){
+    const yr=new Date().getFullYear();
+    info.innerHTML=`<span style="color:#f59e0b;font-size:10px;font-weight:700">▏Último dato: <b>${lastRealKey}</b>${isCurrentMonthPartial?' (mes en curso)':' (datos al cierre)'}</span>
+    <span style="color:#94a3b8;font-size:10px;margin-left:12px">🔮 Proyección hasta dic ${yr}</span>`;
+  }
 }
 
 function buildMix(data){
@@ -608,6 +871,7 @@ function buildTipoTable(data){
     <td style="font-family:'DM Mono',monospace">${data.filter(r=>r._o==='NC').length}</td>
     <td style="font-family:'DM Mono',monospace">${data.filter(r=>r._o==='CROSS').length}</td>
   </tr>`;
+  makeSortable('tipo-tbody','tipo-thead');
 }
 
 // ════════════════════════════════════════════════
@@ -725,6 +989,7 @@ function buildNovedades(data){
       <td style="font-size:11px;color:var(--muted)">${topE?topE[0].slice(0,20):'—'}</td>
     </tr>`;
   }).join('');
+  makeSortable('nov-tipo-tbody','nov-tipo-thead');
 
   // Tendencia novedades
   const gt={};
@@ -769,6 +1034,7 @@ function buildMap(data){
     const ef=pct(e[city]||0,cnt);const sc=ef>=90?'sg':ef>=70?'sy':'sr';const bc=ef>=90?'bg':ef>=70?'by':'br';
     return `<tr><td><span class="sem ${sc}"></span>${city}</td><td style="font-family:'DM Mono',monospace">${cnt}</td><td style="font-family:'DM Mono',monospace">${e[city]||0}</td><td><span class="badge ${bc}">${ef.toFixed(1)}%</span></td><td style="font-family:'DM Mono',monospace;color:#ef4444">${nv[city]||0}</td><td style="font-family:'DM Mono',monospace">${nc[city]||0}</td><td style="font-family:'DM Mono',monospace">${cr[city]||0}</td></tr>`;
   }).join('');
+  makeSortable('map-tb','map-thead');
 }
 
 // ════════════════════════════════════════════════
@@ -785,6 +1051,7 @@ function renderDet(){
   if(!page.length){document.getElementById('det-hd').innerHTML='';document.getElementById('det-bd').innerHTML='<tr><td colspan="13" class="empty">Sin datos</td></tr>';document.getElementById('pgn').innerHTML='';return;}
   const cols=Object.keys(page[0]).filter(c=>c!=='_o').slice(0,12);
   document.getElementById('det-hd').innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'<th>Origen</th></tr>';
+  makeSortable('det-bd','det-hd');
   document.getElementById('det-bd').innerHTML=page.map(row=>{
     return '<tr>'+cols.map(c=>{
       const v=(row[c]||'').toString().trim();
@@ -806,9 +1073,13 @@ function populateFilters(data){
   const cities=[...new Set(data.map(getCiu).filter(c=>c&&c!=='SIN CIUDAD'))].sort();
   const tipos=[...new Set(data.map(getTipo).filter(t=>t&&t!=='SIN TIPO'))].sort();
   const novs=[...new Set(data.map(r=>getNov(r)).filter(Boolean))].sort();
+  // Meses disponibles en orden ascendente
+  const meses=[...new Set(data.map(r=>{const d=getFecha(r);if(!d)return null;return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}).filter(Boolean))].sort();
+  const mesNombres={1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'};
   document.getElementById('f-ciudad').innerHTML='<option value="">Todas las ciudades</option>'+cities.map(c=>`<option value="${c}">${c}</option>`).join('');
   document.getElementById('f-tipo').innerHTML='<option value="">Todos los tipos</option>'+tipos.map(t=>`<option value="${t}">${t}</option>`).join('');
   document.getElementById('f-nov').innerHTML='<option value="">Todas las novedades</option>'+novs.map(n=>`<option value="${n}">${n}</option>`).join('');
+  document.getElementById('f-mes').innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>{const[y,mo]=m.split('-');return `<option value="${m}">${mesNombres[+mo]} ${y}</option>`;}).join('');
 }
 
 // ════════════════════════════════════════════════
@@ -821,7 +1092,8 @@ function update(){
   document.getElementById('hdr-ts').textContent=new Date().toLocaleTimeString('es-CO');
   const S=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   S('k-tot',fmt(k.tot));S('k-efe',fmt(k.ef));S('k-pct',fP(k.pEf));
-  S('k-pe',k.avgPE!==null?k.avgPE.toFixed(1):'—');S('k-rec',fmt(k.rec));S('k-nov',fmt(k.nv));
+  S('k-pe',k.avgPE!==null?k.avgPE.toFixed(1):'—');
+  S('k-pe-u',k.peFromDates?'días hábiles CO':'días');S('k-rec',fmt(k.rec));S('k-nov',fmt(k.nv));
   S('hs-g',fmt(k.tot));S('hs-e',fP(k.pEf));S('hs-r',fmt(k.rec));
   buildTrend(data);buildMix(data);buildCiuVol(data);buildCiuEfe(data);
   buildTipoVol(data);buildTipoEfe(data);buildTipoTable(data);
@@ -967,12 +1239,11 @@ document.querySelectorAll('.pill[data-o]').forEach(p=>{
 document.getElementById('f-ciudad').addEventListener('change',e=>{ST.ciudad=e.target.value;update();});
 document.getElementById('f-tipo').addEventListener('change',e=>{ST.tipo=e.target.value;update();});
 document.getElementById('f-nov').addEventListener('change',e=>{ST.nov=e.target.value;update();});
-document.getElementById('f-fi').addEventListener('change',e=>{ST.fi=e.target.value?new Date(e.target.value):null;update();});
-document.getElementById('f-ff').addEventListener('change',e=>{ST.ff=e.target.value?new Date(e.target.value):null;update();});
+document.getElementById('f-mes').addEventListener('change',e=>{ST.mes=e.target.value;update();});
 document.getElementById('srch').addEventListener('input',e=>{ST.srch=e.target.value;buildDetail(getFiltered());});
 document.getElementById('btn-reset').addEventListener('click',()=>{
-  ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',fi:null,ff:null,srch:''};
-  ['f-ciudad','f-tipo','f-nov','f-fi','f-ff','srch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',mes:'',srch:''};
+  ['f-ciudad','f-tipo','f-nov','f-mes','srch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.querySelectorAll('.pill[data-o]').forEach(p=>p.classList.add('on'));
   update();
 });
