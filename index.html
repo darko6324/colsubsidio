@@ -186,6 +186,12 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
 
 <!-- ==================== GENERAL ==================== -->
 <section class="page on" id="page-general">
+  <div id="fecha-debug-bar" style="display:none;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:11px;font-family:'DM Mono',monospace;color:#92400e;line-height:1.8">
+    <b>🔍 Campo fecha activo:</b> <span id="dbg-campo">—</span> &nbsp;|&nbsp;
+    <b>Muestra valores:</b> <span id="dbg-muestra">—</span> &nbsp;|&nbsp;
+    <b>Sin fecha_entrega:</b> <span id="dbg-sinfecha">—</span> registros excluidos de gráficas
+    <button onclick="document.getElementById('fecha-debug-bar').style.display='none'" style="float:right;background:none;border:none;cursor:pointer;font-size:14px;color:#92400e">✕</button>
+  </div>
   <div class="hero">
     <h1>Dashboard Operación Logística<br><span style="color:var(--yellow)">Colsubsidio</span></h1>
     <p>KPIs consolidados NC + CROSS. Usa los filtros de origen, ciudad, tipo de servicio, novedad y fecha para segmentar.</p>
@@ -555,8 +561,25 @@ function detectFields(data){
 
   // Muestra sample de valores de fecha para confirmar que es la columna correcta
   if(F.fecha){
-    const sample=data.slice(0,5).map(r=>r[F.fecha]).filter(Boolean);
-    console.log('%cMuestra fecha_entrega (primeros 5 valores):','color:#10b981;font-weight:bold',sample);
+    const sample=[...new Set(data.slice(0,200).map(r=>r[F.fecha]).filter(Boolean))].slice(0,6);
+    console.log('%cMuestra fecha_entrega (primeros valores únicos):','color:#10b981;font-weight:bold',sample);
+    // Populate debug bar
+    const sinFecha=data.filter(r=>!r[F.fecha]||r[F.fecha].toString().trim()==='').length;
+    const bar=document.getElementById('fecha-debug-bar');
+    if(bar){
+      bar.style.display='block';
+      document.getElementById('dbg-campo').textContent=F.fecha;
+      document.getElementById('dbg-muestra').textContent=sample.join(' · ');
+      document.getElementById('dbg-sinfecha').textContent=sinFecha.toLocaleString('es-CO');
+    }
+  } else {
+    const bar=document.getElementById('fecha-debug-bar');
+    if(bar){
+      bar.style.display='block';
+      bar.style.background='#fee2e2';bar.style.borderColor='#ef4444';bar.style.color='#991b1b';
+      document.getElementById('dbg-campo').textContent='❌ NO DETECTADO — verifica nombre de columna';
+      document.getElementById('dbg-muestra').textContent='N/A';
+    }
   }
 }
 
@@ -595,6 +618,14 @@ function getFiltered(){
   let d=[];
   if(ST.nc)   RNC.forEach(r=>d.push({...r,_o:'NC'}));
   if(ST.cross) RCR.forEach(r=>d.push({...r,_o:'CROSS'}));
+  // Si tenemos campo fecha_entrega, SOLO incluir registros que tengan fecha_entrega válida
+  // Esto excluye registros sin fecha de entrega (no procesados aún) y con fechas incorrectas
+  if(F.fecha){
+    d=d.filter(r=>{
+      const raw=(r[F.fecha]||'').toString().trim();
+      return raw!=='';
+    });
+  }
   if(ST.ciudad) d=d.filter(r=>getCiu(r)===ST.ciudad);
   if(ST.tipo)   d=d.filter(r=>getTipo(r)===ST.tipo);
   if(ST.nov)    d=d.filter(r=>getNov(r)===ST.nov);
