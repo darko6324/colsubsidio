@@ -606,56 +606,108 @@ function calcKPIs(data){
 }
 
 // ════════════════════════════════════════════════
-// PROYECCION LINEAL — hasta fin del año actual
+// PROYECCION — promedio móvil ponderado + corrección mes parcial
 // ════════════════════════════════════════════════
-function linearRegression(xs,ys){
-  const n=xs.length,sx=xs.reduce((a,b)=>a+b,0),sy=ys.reduce((a,b)=>a+b,0);
-  const sxy=xs.reduce((a,x,i)=>a+x*ys[i],0),sx2=xs.reduce((a,x)=>a+x*x,0);
-  const denom=n*sx2-sx*sx;
-  const m=denom?((n*sxy-sx*sy)/denom):0;
-  const b=(sy-m*sx)/n;
-  return{m,b};
+
+// Detecta si un key YYYY-MM es el mes en curso (datos incompletos)
+function isCurrentMonth(key){
+  const now=new Date();
+  return key===`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 }
 
-// Devuelve meses futuros desde lastKey hasta el último mes del año en curso
+// Fracción del mes actual que ha transcurrido (días hábiles estimados)
+function monthFraction(){
+  const now=new Date();
+  const total=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  return Math.max(0.05,now.getDate()/total);
+}
+
+// Meses futuros desde lastKey hasta dic del año en curso
 function futureMonthsToYearEnd(lastKey){
   const [y,mo]=lastKey.split('-').map(Number);
-  const curYear=new Date().getFullYear();
-  // Si el último dato es de un año anterior, proyectar hasta dic del año actual
-  const endYear=Math.max(y,curYear);
-  const endMonth=12;
+  const endYear=Math.max(y,new Date().getFullYear());
   const keys=[];
   let cy=y,cm=mo+1;
-  while(cy<endYear||(cy===endYear&&cm<=endMonth)){
+  while(cy<endYear||(cy===endYear&&cm<=12)){
     keys.push(`${cy}-${String(cm).padStart(2,'0')}`);
     cm++;if(cm>12){cm=1;cy++;}
   }
   return keys;
 }
 
-function projectValues(keys,vals,_n){
-  if(keys.length<2)return{keys:[],vals:[],totVals:[]};
-  const futKeys=futureMonthsToYearEnd(keys[keys.length-1]);
-  if(!futKeys.length)return{keys:[],vals:[],totVals:[]};
-  // Usar hasta 6 meses reales más recientes para la regresión
-  const len=Math.min(keys.length,6);
-  const xs=Array.from({length:len},(_,i)=>i);
-  const ys=vals.slice(-len);
-  const{m,b}=linearRegression(xs,ys);
-  const projVals=futKeys.map((_,i)=>Math.max(0,Math.min(100,b+m*(len-1+i+1))));
-  return{keys:futKeys,vals:projVals,totVals:[]};
+// Promedio móvil ponderado exponencialmente (EWM): alpha controla suavidad
+// alpha=0.3 → suave, alpha=0.7 → reactivo
+function ewma(vals, alpha=0.4){
+  if(!vals.length)return null;
+  let s=vals[0];
+  for(let i=1;i<vals.length;i++) s=alpha*vals[i]+(1-alpha)*s;
+  return s;
 }
 
-// Proyección de volumen (guías) — regresión lineal sin clamp de 100
+// Tendencia: diferencia promedio ponderada entre meses consecutivos
+function weightedTrend(vals){
+  if(vals.length<2)return 0;
+  const diffs=[];
+  for(let i=1;i<vals.length;i++) diffs.push(vals[i]-vals[i-1]);
+  // Pesos crecientes: el último cambio pesa más
+  const ws=diffs.map((_,i)=>i+1);
+  const sw=ws.reduce((a,b)=>a+b,0);
+  const wtd=diffs.reduce((a,d,i)=>a+d*ws[i],0)/sw;
+  return wtd;
+}
+
+// Proyecta % efectividad: EWM + tendencia amortiguada
+function projectValues(keys,vals){
+  if(keys.length<2)return{keys:[],vals:[]};
+  const lastKey=keys[keys.length-1];
+  const futKeys=futureMonthsToYearEnd(lastKey);
+  if(!futKeys.length)return{keys:[],vals:[]};
+
+  // Separar meses cerrados y mes parcial
+  const partial=isCurrentMonth(lastKey);
+  const closedVals=partial?vals.slice(0,-1):vals;
+  if(closedVals.length<1)return{keys:futKeys,vals:futKeys.map(()=>vals[vals.length-1])};
+
+  // Usar últimos 4 meses cerrados para el modelo
+  const window=closedVals.slice(-4);
+  const base=ewma(window, 0.35);              // nivel base suavizado
+  const trend=weightedTrend(window);          // tendencia mensual
+  // Amortiguar tendencia: cada mes futuro atenúa la pendiente (mean reversion)
+  const dampFactor=0.75; // 0=plana, 1=lineal pura
+  const projVals=futKeys.map((_,i)=>{
+    const t=trend*Math.pow(dampFactor,i);     // pendiente que decae
+    return Math.max(0,Math.min(100,base+t*(i+1)));
+  });
+  return{keys:futKeys,vals:projVals};
+}
+
+// Proyecta volumen de guías: EWM + tendencia amortiguada (sin límite 100)
 function projectTotals(keys,tots){
   if(keys.length<2)return[];
-  const futKeys=futureMonthsToYearEnd(keys[keys.length-1]);
+  const lastKey=keys[keys.length-1];
+  const futKeys=futureMonthsToYearEnd(lastKey);
   if(!futKeys.length)return[];
-  const len=Math.min(keys.length,6);
-  const xs=Array.from({length:len},(_,i)=>i);
-  const ys=tots.slice(-len);
-  const{m,b}=linearRegression(xs,ys);
-  return futKeys.map((_,i)=>Math.max(0,Math.round(b+m*(len-1+i+1))));
+
+  const partial=isCurrentMonth(lastKey);
+  // Si el mes es parcial, escalar al mes completo para no distorsionar la base
+  let closedTots=partial?tots.slice(0,-1):tots;
+  if(partial&&tots.length>0){
+    const scaledLast=Math.round(tots[tots.length-1]/monthFraction());
+    closedTots=[...closedTots,scaledLast]; // reemplaza con valor escalado
+  }
+  if(closedTots.length<1)return futKeys.map(()=>tots[tots.length-1]);
+
+  const window=closedTots.slice(-4);
+  const base=ewma(window, 0.35);
+  const trend=weightedTrend(window);
+  const dampFactor=0.75;
+  // Limitar la pendiente a máx ±20% del valor base por mes (evita disparos)
+  const maxSlope=base*0.20;
+  const trendCapped=Math.max(-maxSlope,Math.min(maxSlope,trend));
+  return futKeys.map((_,i)=>{
+    const t=trendCapped*Math.pow(dampFactor,i);
+    return Math.max(0,Math.round(base+t*(i+1)));
+  });
 }
 
 // ════════════════════════════════════════════════
@@ -703,30 +755,39 @@ function buildTrend(data){
   const pcts=keys.map(k=>pct(g[k].e,g[k].t));
   const tots=keys.map(k=>g[k].t);
 
-  // Calcular proyección hasta fin del año actual
+  // Identificar si el último mes es parcial (mes en curso)
+  const lastRealKey=keys[keys.length-1];
+  const hasPartial=isCurrentMonth(lastRealKey);
+
+  // Índice donde empieza la proyección: desde el último mes CERRADO
+  // Si hay mes parcial, la proyección arranca desde el penúltimo (último cerrado)
+  const splitIdx=hasPartial?keys.length-2:keys.length-1;
+  const baseEf=pcts[splitIdx];
+  const baseTot=tots[splitIdx];
+
+  // Proyección basada en meses cerrados (excluye parcial internamente)
   const proj=projectValues(keys,pcts);
   const projTots=projectTotals(keys,tots);
 
-  // Detectar mes del último dato real para marcarlo como "cierre mes en curso"
-  const lastRealKey=keys[keys.length-1];
-  const todayKey=`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-  const isCurrentMonthPartial=lastRealKey===todayKey;
-
-  // Construir etiquetas: reales + proyección
   const allLabels=[...keys,...proj.keys];
   const nReal=keys.length, nProj=proj.keys.length;
 
-  // Dataset efectividad real
+  // Efectividad real — mes parcial con punto hueco naranja
   const efReal=[...pcts,...Array(nProj).fill(null)];
-  // Dataset efectividad proyectada (arranca desde el último real)
-  const efProj=[...Array(nReal-1).fill(null), pcts[nReal-1], ...proj.vals];
-  // Dataset guías reales
-  const totReal=[...tots,...Array(nProj).fill(null)];
-  // Dataset guías proyectadas
-  const totProj=[...Array(nReal-1).fill(null), tots[nReal-1], ...projTots];
+  const efPtBg=pcts.map((_,i)=>i===nReal-1&&hasPartial?'#fff':'#005596');
+  const efPtBorder=pcts.map((_,i)=>i===nReal-1&&hasPartial?'#f59e0b':'#fff');
+  const efPtRadius=pcts.map((_,i)=>i===nReal-1&&hasPartial?5:4);
 
-  // Anotación vertical en el último mes real
-  const splitIdx=nReal-1;
+  // Proyección efectividad — arranca desde el último mes cerrado
+  const efProj=[...Array(splitIdx).fill(null), baseEf, ...proj.vals];
+
+  // Guías reales
+  const totReal=[...tots,...Array(nProj).fill(null)];
+  const totPtBg=tots.map((_,i)=>i===nReal-1&&hasPartial?'#fff':'#FFD100');
+  const totPtBorder=tots.map((_,i)=>i===nReal-1&&hasPartial?'#f59e0b':'#FFD100');
+
+  // Proyección guías — arranca desde el último mes cerrado
+  const totProj=[...Array(splitIdx).fill(null), baseTot, ...projTots];
 
   dc('ch-trend');const ctx=document.getElementById('ch-trend');if(!ctx)return;
   CHS['ch-trend']=new Chart(ctx.getContext('2d'),{
@@ -734,24 +795,20 @@ function buildTrend(data){
     data:{
       labels:allLabels,
       datasets:[
-        // Efectividad real
         {label:'% Efectividad (real)',data:efReal,
           borderColor:'#005596',backgroundColor:'rgba(0,85,150,.10)',
-          fill:true,tension:.4,pointRadius:4,yAxisID:'y',
-          pointBackgroundColor:'#005596',pointBorderColor:'#fff',pointBorderWidth:2,
+          fill:true,tension:.35,pointRadius:efPtRadius,yAxisID:'y',
+          pointBackgroundColor:efPtBg,pointBorderColor:efPtBorder,pointBorderWidth:2,
           borderWidth:2.5},
-        // Efectividad proyectada
         {label:'% Efectividad (proy.)',data:efProj,
           borderColor:'#005596',borderDash:[7,4],backgroundColor:'transparent',
           fill:false,tension:.35,pointRadius:3,yAxisID:'y',
           pointBackgroundColor:'#FFD100',pointBorderColor:'#005596',pointBorderWidth:2,
           borderWidth:2},
-        // Guías reales
         {label:'Guías (real)',data:totReal,
           borderColor:'#FFD100',backgroundColor:'rgba(255,209,0,.08)',
-          fill:true,tension:.4,pointRadius:3,yAxisID:'y1',
-          pointBackgroundColor:'#FFD100',borderWidth:2},
-        // Guías proyectadas
+          fill:true,tension:.35,pointRadius:totPtBg.map((_,i)=>i===nReal-1&&hasPartial?5:3),yAxisID:'y1',
+          pointBackgroundColor:totPtBg,pointBorderColor:totPtBorder,pointBorderWidth:2,borderWidth:2},
         {label:'Guías (proy.)',data:totProj,
           borderColor:'#f59e0b',borderDash:[7,4],backgroundColor:'transparent',
           fill:false,tension:.35,pointRadius:3,yAxisID:'y1',
@@ -768,41 +825,43 @@ function buildTrend(data){
           callbacks:{
             title:tt=>{
               const lbl=tt[0].label;
-              const isProj=proj.keys.includes(lbl);
-              const isCierre=lbl===lastRealKey&&isCurrentMonthPartial;
-              return lbl+(isProj?' 🔮 Proyectado':isCierre?' ⏳ Cierre mes en curso':'');
+              if(proj.keys.includes(lbl))return lbl+' 🔮 Proyectado';
+              if(lbl===lastRealKey&&hasPartial)return lbl+' ⏳ Mes en curso (parcial)';
+              return lbl;
             },
             label:tt=>{
-              if(tt.raw===null)return null;
+              if(tt.raw===null||tt.raw===undefined)return null;
               const isEfAxis=tt.datasetIndex<=1;
               return ` ${tt.dataset.label}: ${isEfAxis?tt.raw.toFixed(1)+'%':tt.raw.toLocaleString('es-CO')}`;
             }
           }
-        },
-        // Línea vertical divisoria real vs proyección
-        annotation:undefined
+        }
       },
       scales:{
         y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},
-        y1:{position:'right',beginAtZero:true,ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v,font:{family:'DM Mono',size:10}},grid:{display:false}},
-        x:{ticks:{font:{family:'DM Sans',size:10},maxRotation:45},grid:{
-          color:ctx2=>{
-            // Línea divisoria naranja en el índice splitIdx
-            if(ctx2.index===splitIdx)return'rgba(245,158,11,0.5)';
-            return'#f1f5f9';
-          },
-          lineWidth:ctx2=>ctx2.index===splitIdx?2:1
-        }}
+        y1:{position:'right',beginAtZero:true,
+          ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v,font:{family:'DM Mono',size:10}},
+          grid:{display:false}},
+        x:{ticks:{font:{family:'DM Sans',size:10},maxRotation:45},
+          grid:{
+            color:ctx2=>ctx2.index===splitIdx?'rgba(245,158,11,0.6)':' #f1f5f9',
+            lineWidth:ctx2=>ctx2.index===splitIdx?2:1
+          }}
       }
     }
   });
 
-  // Añadir etiqueta "Cierre mes en curso" y "Proyección →" debajo del gráfico
   const info=document.getElementById('ch-trend-info');
   if(info){
     const yr=new Date().getFullYear();
-    info.innerHTML=`<span style="color:#f59e0b;font-size:10px;font-weight:700">▏Último dato: <b>${lastRealKey}</b>${isCurrentMonthPartial?' (mes en curso)':' (datos al cierre)'}</span>
-    <span style="color:#94a3b8;font-size:10px;margin-left:12px">🔮 Proyección hasta dic ${yr}</span>`;
+    const nowDay=new Date().getDate();
+    const daysInMo=new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate();
+    const pctMes=Math.round(nowDay/daysInMo*100);
+    const partialNote=hasPartial
+      ?`<span style="color:#f59e0b;font-size:10px;font-weight:700;margin-left:10px">⚠ Mes en curso: ${pctMes}% del mes transcurrido — excluido del modelo de proyección</span>`
+      :'';
+    info.innerHTML=`<span style="color:#005596;font-size:10px;font-weight:700">▏Base proyección: meses cerrados hasta <b>${keys[splitIdx]}</b></span>${partialNote}
+    <span style="color:#94a3b8;font-size:10px;margin-left:10px">🔮 Proyección hasta dic ${yr} · regresión ponderada (meses recientes ×6)</span>`;
   }
 }
 
