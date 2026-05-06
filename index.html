@@ -511,32 +511,53 @@ function parseDate(raw){
 function detectFields(data){
   if(!data.length)return;
   const cols=Object.keys(data[0]);
-  const find=(...cc)=>{
+
+  // findExact: solo match exacto normalizado (sin fuzzy includes)
+  const findExact=(...cc)=>{
+    for(const c of cc){const f=cols.find(x=>N(x)===N(c));if(f)return f;}
+    return null;
+  };
+  // findFuzzy: primero exacto, luego parcial (para campos que no son fecha)
+  const findFuzzy=(...cc)=>{
     for(const c of cc){const f=cols.find(x=>N(x)===N(c));if(f)return f;}
     for(const c of cc){const f=cols.find(x=>N(x).includes(N(c))||N(c).includes(N(x)));if(f)return f;}
     return null;
   };
-  F.nov =find('cluster_novedad','novedad','tipo_novedad','cluster','motivo','estado_novedad');
-  F.ciu =find('ciudad','municipio','destino','ciudad_destino','city','ciudad_entrega','municipio_destino');
-  F.fecha=find('fecha_entrega','fecha_entrega_real','entrega','fecha_proceso','fecha_registro','fecha','date','fecha_novedad','fec');
-  F.placa=find('placa','conductor','vehiculo','recurso','transportador');
-  F.pe   =find('pe','tiempo_pe','dias_pe','dias','tiempo_proceso','horas_pe','promedio_pe');
-  F.tipo =find('tipo_servicio','tipo_de_servicio','tipo','servicio','modalidad','tipo_guia');
-  F.esp  =find('especialidad','especialidad_servicio','esp','rama','categoria','linea');
-  F.estado=find('estado','estado_guia','estado_servicio','estado_entrega');
+
+  F.nov  =findFuzzy('cluster_novedad','novedad','tipo_novedad','cluster','motivo','estado_novedad');
+  F.ciu  =findFuzzy('ciudad','municipio','destino','ciudad_destino','city','municipio_destino');
+  // FECHA: solo match exacto — nunca tomar fecha_creacion, fecha_registro, etc.
+  F.fecha=findExact('fecha_entrega','fecha_entrega_real','fecha_de_entrega');
+  // Si no hay match exacto, loguear advertencia y no usar fallback ambiguo
+  if(!F.fecha){
+    console.warn('%c⚠️ No se encontró columna fecha_entrega exacta. Columnas disponibles:','color:#ef4444;font-weight:bold',cols.join(', '));
+  }
+  F.placa=findFuzzy('placa','conductor','vehiculo','recurso','transportador');
+  F.pe   =findExact('pe','tiempo_pe','dias_pe','promedio_pe');
+  F.tipo =findFuzzy('tipo_servicio','tipo_de_servicio','tipo','servicio','modalidad','tipo_guia');
+  F.esp  =findFuzzy('especialidad','especialidad_servicio','esp','rama','categoria','linea');
+  F.estado=findExact('estado','estado_guia','estado_servicio');
   // Fechas para cálculo de días hábiles PE (col M = cierre, col K = aceptacion)
-  F.fechaCierre=find('fecha_cierre_o_congelado','fecha_cierre','fecha_congelado','cierre','congelado','fecha_fin','fecha_cierre_congelado');
-  F.fechaAcept =find('fecha_aceptacion_1','fecha_aceptacion','aceptacion_1','aceptacion','fecha_inicio_pe','fecha_inicio');
-  console.log('%cFechas PE hábiles','color:#8b5cf6;font-weight:bold','Cierre:',F.fechaCierre,'Acept:',F.fechaAcept);
-  console.log('%cCampos detectados','color:#005596;font-weight:bold',F);
-  console.log('%cFecha usada para filtros/gráficas','color:#10b981;font-weight:bold','→',F.fecha);
-  console.log('Cols disponibles:',cols);
-  const sNov=[...new Set(data.slice(0,300).map(r=>gv(r,F.nov)).filter(Boolean))].slice(0,20);
-  console.log('%cValores cluster_novedad','color:#ef4444',sNov);
-  const sTipo=[...new Set(data.slice(0,300).map(r=>gv(r,F.tipo)).filter(Boolean))].slice(0,15);
-  console.log('%cValores tipo_servicio','color:#10b981',sTipo);
-  const sEsp=[...new Set(data.slice(0,300).map(r=>gv(r,F.esp)).filter(Boolean))].slice(0,15);
-  console.log('%cValores especialidad','color:#8b5cf6',sEsp);
+  F.fechaCierre=findExact('fecha_cierre_o_congelado','fecha_cierre','fecha_congelado');
+  F.fechaAcept =findExact('fecha_aceptacion_1','fecha_aceptacion','aceptacion_1');
+
+  // Log completo para diagnóstico
+  console.log('%c══ CAMPOS DETECTADOS ══','color:#005596;font-weight:bold;font-size:13px');
+  console.table({
+    'fecha_entrega (F.fecha)': F.fecha||'❌ NO ENCONTRADO',
+    'cluster_novedad':F.nov||'❌',
+    'ciudad':F.ciu||'❌',
+    'tipo_servicio':F.tipo||'❌',
+    'fecha_cierre':F.fechaCierre||'—',
+    'fecha_aceptacion':F.fechaAcept||'—',
+  });
+  console.log('%cTodas las columnas disponibles:','color:#64748b',cols);
+
+  // Muestra sample de valores de fecha para confirmar que es la columna correcta
+  if(F.fecha){
+    const sample=data.slice(0,5).map(r=>r[F.fecha]).filter(Boolean);
+    console.log('%cMuestra fecha_entrega (primeros 5 valores):','color:#10b981;font-weight:bold',sample);
+  }
 }
 
 const getCiu=r=>N(gv(r,F.ciu))||'SIN CIUDAD';
