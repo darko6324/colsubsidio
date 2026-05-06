@@ -189,11 +189,16 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
 
 <!-- ==================== GENERAL ==================== -->
 <section class="page on" id="page-general">
-  <div id="fecha-debug-bar" style="display:none;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:11px;font-family:'DM Mono',monospace;color:#92400e;line-height:1.8">
-    <b>🔍 Campo fecha activo:</b> <span id="dbg-campo">—</span> &nbsp;|&nbsp;
-    <b>Muestra valores:</b> <span id="dbg-muestra">—</span> &nbsp;|&nbsp;
-    <b>Sin fecha_entrega:</b> <span id="dbg-sinfecha">—</span> registros excluidos de gráficas
-    <button onclick="document.getElementById('fecha-debug-bar').style.display='none'" style="float:right;background:none;border:none;cursor:pointer;font-size:14px;color:#92400e">✕</button>
+  <div id="fecha-debug-bar" style="display:none;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:11px;font-family:'DM Mono',monospace;color:#92400e;line-height:1.9">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <b>🔍 Columna fecha detectada:</b> "<span id="dbg-campo" style="color:#005596;font-weight:700">—</span>"
+        &nbsp;|&nbsp; <b>Sin fecha_entrega (excluidos):</b> <span id="dbg-sinfecha">—</span> registros
+        <br><b>Muestra valores reales:</b> <span id="dbg-muestra" style="color:#065f46">—</span>
+        <br><b>Años encontrados en fecha:</b> <span id="dbg-years" style="color:#9a3412;font-weight:700">—</span>
+      </div>
+      <button onclick="document.getElementById('fecha-debug-bar').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:16px;color:#92400e;padding:0 4px">✕</button>
+    </div>
   </div>
   <div class="hero">
     <h1>Dashboard Operación Logística<br><span style="color:var(--yellow)">Colsubsidio</span></h1>
@@ -508,13 +513,16 @@ function businessDaysCO(d1,d2){
 function parseDate(raw){
   if(!raw)return null;
   const s=raw.toString().trim();
-  // DD/MM/YYYY o DD-MM-YYYY o DD.MM.YYYY
-  const m1=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
-  if(m1){const y=m1[3].length===2?'20'+m1[3]:m1[3];return new Date(`${y}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`);}
-  // YYYY-MM-DD
-  const m2=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(m2)return new Date(s.slice(0,10));
-  const d=new Date(s);return isNaN(d)?null:d;
+  if(!s)return null;
+  const mISO=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(mISO)return new Date(parseInt(mISO[1]),parseInt(mISO[2])-1,parseInt(mISO[3]));
+  const mCO=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})(\s.*)?$/);
+  if(mCO){
+    const dia=parseInt(mCO[1]),mes=parseInt(mCO[2]);
+    const anio=mCO[3].length===2?2000+parseInt(mCO[3]):parseInt(mCO[3]);
+    if(dia>=1&&dia<=31&&mes>=1&&mes<=12)return new Date(anio,mes-1,dia);
+  }
+  return null;
 }
 
 function detectFields(data){
@@ -571,9 +579,17 @@ function detectFields(data){
     const bar=document.getElementById('fecha-debug-bar');
     if(bar){
       bar.style.display='block';
+      // Contar registros por año
+      const yearCount={};
+      data.filter(r=>(r[F.fecha]||'').trim()!=='').forEach(r=>{
+        const d=getFecha(r);
+        if(d){const y=d.getFullYear();yearCount[y]=(yearCount[y]||0)+1;}
+      });
+      const yearStr=Object.entries(yearCount).sort().map(([y,n])=>`${y}: ${n.toLocaleString('es-CO')} registros`).join(' | ');
       document.getElementById('dbg-campo').textContent=F.fecha;
       document.getElementById('dbg-muestra').textContent=sample.join(' · ');
       document.getElementById('dbg-sinfecha').textContent=sinFecha.toLocaleString('es-CO');
+      document.getElementById('dbg-years').textContent=yearStr||'(sin datos de fecha válidos)';
     }
   } else {
     const bar=document.getElementById('fecha-debug-bar');
@@ -599,18 +615,22 @@ const isNv=r=>{const v=getNov(r);return v!==''&&v!=='SIN NOVEDAD';};
 function getFecha(r){
   const raw=gv(r,F.fecha);if(!raw)return null;
   const s=raw.toString().trim();
-  // DD/MM/YYYY o DD-MM-YYYY o DD.MM.YYYY (con o sin hora)
-  const m1=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
-  if(m1){const y=m1[3].length===2?'20'+m1[3]:m1[3];return new Date(`${y}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`);}
-  // YYYY-MM-DD (ISO)
-  const m2=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(m2)return new Date(s.slice(0,10));
-  const d=new Date(s);return isNaN(d)?null:d;
+  if(!s)return null;
+  const mISO=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(mISO)return new Date(parseInt(mISO[1]),parseInt(mISO[2])-1,parseInt(mISO[3]));
+  const mCO=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})(\s.*)?$/);
+  if(mCO){
+    const dia=parseInt(mCO[1]),mes=parseInt(mCO[2]);
+    const anio=mCO[3].length===2?2000+parseInt(mCO[3]):parseInt(mCO[3]);
+    if(dia>=1&&dia<=31&&mes>=1&&mes<=12)return new Date(anio,mes-1,dia);
+  }
+  return null;
 }
 
 function getLastDate(data){
   let last=null;
-  data.forEach(r=>{const d=getFecha(r);if(d&&(!last||d>last))last=d;});
+  const src=F.fecha?data.filter(r=>(r[F.fecha]||'').toString().trim()!==''):data;
+  src.forEach(r=>{const d=getFecha(r);if(d&&(!last||d>last))last=d;});
   return last;
 }
 
@@ -1193,8 +1213,9 @@ function populateFilters(data){
   const cities=[...new Set(data.map(getCiu).filter(c=>c&&c!=='SIN CIUDAD'))].sort();
   const tipos=[...new Set(data.map(getTipo).filter(t=>t&&t!=='SIN TIPO'))].sort();
   const novs=[...new Set(data.map(r=>getNov(r)).filter(Boolean))].sort();
-  // Meses disponibles en orden ascendente
-  const meses=[...new Set(data.map(r=>{const d=getFecha(r);if(!d)return null;return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}).filter(Boolean))].sort();
+  // Meses disponibles: SOLO filas con fecha_entrega explícita y válida
+  const rowsConFecha=F.fecha?data.filter(r=>(r[F.fecha]||'').toString().trim()!==''):data;
+  const meses=[...new Set(rowsConFecha.map(r=>{const d=getFecha(r);if(!d)return null;return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}).filter(Boolean))].sort();
   const mesNombres={1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'};
   document.getElementById('f-ciudad').innerHTML='<option value="">Todas las ciudades</option>'+cities.map(c=>`<option value="${c}">${c}</option>`).join('');
   document.getElementById('f-tipo').innerHTML='<option value="">Todos los tipos</option>'+tipos.map(t=>`<option value="${t}">${t}</option>`).join('');
