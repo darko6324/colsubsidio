@@ -181,6 +181,9 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   <span class="fl">Fecha Entrega</span>
   <select class="fsel" id="f-mes"><option value="">Todos los meses</option></select>
   <button class="brst" id="btn-reset">↺ Limpiar</button>
+  <button class="brst" id="btn-refresh" style="background:var(--blue);color:white;display:flex;align-items:center;gap:5px">
+    <span id="refresh-icon">↻</span> Actualizar datos
+  </button>
   <span id="rc"></span>
 </div>
 
@@ -1277,8 +1280,8 @@ function showError(){
   </div>`;
 }
 
-async function loadData(){
-  setP(5);setSub('Conectando con Google Sheets…');
+async function loadData(isRefresh=false){
+  if(!isRefresh){setP(5);setSub('Conectando con Google Sheets…');}
 
   // NC — intentar varias URL variants
   setSub('Cargando hoja DATA NC…');
@@ -1316,7 +1319,7 @@ async function loadData(){
 
   populateFilters(all);setP(95);
   update();setP(100);
-  setTimeout(()=>document.getElementById('loader').style.display='none',350);
+  if(!isRefresh)setTimeout(()=>document.getElementById('loader').style.display='none',350);
 }
 
 async function retryManual(){
@@ -1363,6 +1366,33 @@ document.getElementById('btn-reset').addEventListener('click',()=>{
   ['f-ciudad','f-tipo','f-nov','f-mes','srch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.querySelectorAll('.pill[data-o]').forEach(p=>p.classList.add('on'));
   update();
+});
+
+// REFRESH BUTTON
+document.getElementById('btn-refresh').addEventListener('click',async()=>{
+  const btn=document.getElementById('btn-refresh');
+  const icon=document.getElementById('refresh-icon');
+  btn.disabled=true;
+  btn.style.opacity='0.7';
+  icon.style.display='inline-block';
+  icon.style.animation='spin .7s linear infinite';
+  // Reset data
+  RNC=[];RCR=[];
+  // Show mini loader overlay on fbar
+  const overlay=document.createElement('div');
+  overlay.id='refresh-overlay';
+  overlay.style.cssText='position:fixed;bottom:0;right:0;margin:18px;background:var(--blue);color:white;padding:10px 18px;border-radius:10px;font-size:12px;font-weight:700;font-family:"DM Sans",sans-serif;box-shadow:0 4px 16px rgba(0,85,150,.3);z-index:999;display:flex;align-items:center;gap:8px';
+  overlay.innerHTML='<span style="animation:spin .7s linear infinite;display:inline-block">↻</span> Actualizando datos…';
+  document.body.appendChild(overlay);
+  try{
+    await loadData(true);
+  } finally {
+    btn.disabled=false;
+    btn.style.opacity='1';
+    icon.style.animation='none';
+    const ov=document.getElementById('refresh-overlay');
+    if(ov)ov.remove();
+  }
 });
 
 // BOOT
