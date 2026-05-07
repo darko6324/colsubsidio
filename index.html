@@ -190,17 +190,7 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
 
 <!-- ==================== GENERAL ==================== -->
 <section class="page on" id="page-general">
-  <div id="fecha-debug-bar" style="display:none;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:11px;font-family:'DM Mono',monospace;color:#92400e;line-height:1.9">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start">
-      <div>
-        <b>🔍 Columna fecha detectada:</b> "<span id="dbg-campo" style="color:#005596;font-weight:700">—</span>"
-        &nbsp;|&nbsp; <b>Sin fecha_entrega (excluidos):</b> <span id="dbg-sinfecha">—</span> registros
-        <br><b>Muestra valores reales:</b> <span id="dbg-muestra" style="color:#065f46">—</span>
-        <br><b>Años encontrados en fecha:</b> <span id="dbg-years" style="color:#9a3412;font-weight:700">—</span>
-      </div>
-      <button onclick="document.getElementById('fecha-debug-bar').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:16px;color:#92400e;padding:0 4px">✕</button>
-    </div>
-  </div>
+  <div id="fecha-debug-bar" style="display:none"><span id="dbg-campo"></span><span id="dbg-sinfecha"></span><span id="dbg-muestra"></span><span id="dbg-years"></span></div>
   <div class="hero">
     <h1>Dashboard Operación Logística<br><span style="color:var(--yellow)">Colsubsidio</span></h1>
     <p>KPIs consolidados NC + CROSS. Usa los filtros de origen, ciudad, tipo de servicio, novedad y fecha para segmentar.</p>
@@ -292,10 +282,10 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
 <section class="page" id="page-tiempos">
   <!-- Nota festivos -->
   <div style="background:linear-gradient(135deg,#ede9fe,#dbeafe);border-left:4px solid #8b5cf6;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
-    <span style="font-size:18px">🇨🇴</span>
+    <span style="font-size:18px">📅</span>
     <div>
-      <div style="font-size:12px;font-weight:700;color:#5b21b6">Cálculo con festivos de Colombia</div>
-      <div style="font-size:11px;color:#6d28d9;margin-top:2px">Los tiempos de alistamiento y entrega se calculan en <b>días hábiles</b>, excluyendo sábados, domingos y todos los festivos colombianos (Ley Emiliani + Semana Santa + días fijos). 1 día hábil = 8 horas hábiles.</div>
+      <div style="font-size:12px;font-weight:700;color:#5b21b6">Tiempos en días calendario</div>
+      <div style="font-size:11px;color:#6d28d9;margin-top:2px">Los tiempos se toman directamente de las columnas <b>TIEMPO CREACION A ACEPTACION</b> (alistamiento) y <b>TIEMPO ACEPTACION A FINALIZACION</b> (entrega) de la base de datos, expresados en <b>días calendario</b>. El filtro de mes usa la columna <b>fecha_entrega</b>.</div>
     </div>
   </div>
 
@@ -311,24 +301,24 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
 
   <!-- KPIs tiempos -->
   <div class="kgrid" style="margin-bottom:16px">
-    <div class="kpi" style="--ac:#8b5cf6;--ac-bg:#ede9fe"><div class="kpi-ic">📥</div><div class="kpi-v" id="tk-alist">—</div><div class="kpi-l">Prom. Alistamiento</div><div class="kpi-sub">días hábiles</div><div id="tk-alist-hrs" style="font-size:11px;color:#8b5cf6;font-weight:700;margin-top:2px"></div></div>
-    <div class="kpi" style="--ac:#005596;--ac-bg:#e8f1f9"><div class="kpi-ic">🚚</div><div class="kpi-v" id="tk-entrega">—</div><div class="kpi-l">Prom. Entrega</div><div class="kpi-sub">días hábiles</div><div id="tk-entrega-hrs" style="font-size:11px;color:#005596;font-weight:700;margin-top:2px"></div></div>
-    <div class="kpi" style="--ac:#10b981;--ac-bg:#d1fae5"><div class="kpi-ic">⏰</div><div class="kpi-v" id="tk-total">—</div><div class="kpi-l">Tiempo Total</div><div class="kpi-sub">alist. + entrega</div><div id="tk-total-hrs" style="font-size:11px;color:#10b981;font-weight:700;margin-top:2px"></div></div>
-    <div class="kpi" style="--ac:#f59e0b;--ac-bg:#fef3c7"><div class="kpi-ic">🏆</div><div class="kpi-v" id="tk-p50">—</div><div class="kpi-l">Mediana Entrega</div><div class="kpi-sub">P50 días hábiles</div></div>
-    <div class="kpi" style="--ac:#ef4444;--ac-bg:#fee2e2"><div class="kpi-ic">🔴</div><div class="kpi-v" id="tk-p90">—</div><div class="kpi-l">P90 Entrega</div><div class="kpi-sub">días hábiles</div></div>
-    <div class="kpi" style="--ac:#06b6d4;--ac-bg:#e0f7fa"><div class="kpi-ic">📊</div><div class="kpi-v" id="tk-n">—</div><div class="kpi-l">Registros con fechas</div><div class="kpi-sub">con fechas válidas</div></div>
+    <div class="kpi" style="--ac:#8b5cf6;--ac-bg:#ede9fe"><div class="kpi-ic">📥</div><div class="kpi-v" id="tk-alist">—</div><div class="kpi-l">Prom. Alistamiento</div><div class="kpi-sub">días calendario</div><div id="tk-alist-hrs" style="font-size:11px;color:#8b5cf6;font-weight:700;margin-top:2px"></div></div>
+    <div class="kpi" style="--ac:#005596;--ac-bg:#e8f1f9"><div class="kpi-ic">🚚</div><div class="kpi-v" id="tk-entrega">—</div><div class="kpi-l">Prom. Entrega</div><div class="kpi-sub">días calendario</div><div id="tk-entrega-hrs" style="font-size:11px;color:#005596;font-weight:700;margin-top:2px"></div></div>
+    <div class="kpi" style="--ac:#10b981;--ac-bg:#d1fae5"><div class="kpi-ic">⏰</div><div class="kpi-v" id="tk-total">—</div><div class="kpi-l">Tiempo Total</div><div class="kpi-sub">alist. + entrega (días cal.)</div><div id="tk-total-hrs" style="font-size:11px;color:#10b981;font-weight:700;margin-top:2px"></div></div>
+    <div class="kpi" style="--ac:#f59e0b;--ac-bg:#fef3c7"><div class="kpi-ic">🏆</div><div class="kpi-v" id="tk-p50">—</div><div class="kpi-l">Mediana Entrega</div><div class="kpi-sub">P50 días calendario</div></div>
+    <div class="kpi" style="--ac:#ef4444;--ac-bg:#fee2e2"><div class="kpi-ic">🔴</div><div class="kpi-v" id="tk-p90">—</div><div class="kpi-l">P90 Entrega</div><div class="kpi-sub">días calendario</div></div>
+    <div class="kpi" style="--ac:#06b6d4;--ac-bg:#e0f7fa"><div class="kpi-ic">📊</div><div class="kpi-v" id="tk-n">—</div><div class="kpi-l">Registros con tiempos</div><div class="kpi-sub">con datos válidos</div></div>
   </div>
 
   <!-- Gráficas fila 1 -->
   <div class="ceq">
     <div class="card">
       <div class="ct">Alistamiento vs Entrega — Promedio por Mes</div>
-      <div class="cs">Días hábiles promedio mes a mes · Barras apiladas</div>
+      <div class="cs">Días calendario promedio mes a mes · Barras apiladas · Fecha: fecha_entrega</div>
       <canvas id="ch-ti-mes" style="max-height:260px"></canvas>
     </div>
     <div class="card">
       <div class="ct">Distribución del Tiempo de Entrega</div>
-      <div class="cs">Histograma de días hábiles de entrega</div>
+      <div class="cs">Histograma de días calendario de entrega</div>
       <canvas id="ch-ti-hist" style="max-height:260px"></canvas>
     </div>
   </div>
@@ -337,12 +327,12 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   <div class="ceq">
     <div class="card">
       <div class="ct">Top 10 Ciudades — Promedio Alistamiento</div>
-      <div class="cs">Ciudades con mayor promedio de días hábiles de alistamiento</div>
+      <div class="cs">Ciudades con mayor promedio de días calendario de alistamiento</div>
       <canvas id="ch-ti-alist-ciu" style="max-height:260px"></canvas>
     </div>
     <div class="card">
       <div class="ct">Top 10 Ciudades — Promedio Entrega</div>
-      <div class="cs">Ciudades con mayor promedio de días hábiles de entrega</div>
+      <div class="cs">Ciudades con mayor promedio de días calendario de entrega</div>
       <canvas id="ch-ti-entr-ciu" style="max-height:260px"></canvas>
     </div>
   </div>
@@ -364,15 +354,15 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   <!-- Tabla detalle por ciudad -->
   <div class="card">
     <div class="ct">Detalle por Ciudad</div>
-    <div class="cs">Tiempos promedio de alistamiento y entrega — días hábiles CO · clic en encabezado para ordenar</div>
+    <div class="cs">Tiempos promedio de alistamiento y entrega — días calendario · clic en encabezado para ordenar</div>
     <div class="tw"><table><thead id="ti-thead"><tr>
       <th class="sortable">Ciudad</th>
       <th class="sortable">Registros</th>
-      <th class="sortable">Alist. Prom (días)</th>
-      <th class="sortable">Alist. Prom (hrs)</th>
-      <th class="sortable">Entrega Prom (días)</th>
-      <th class="sortable">Entrega Prom (hrs)</th>
-      <th class="sortable">Total Prom (días)</th>
+      <th class="sortable">Alist. Prom (días cal.)</th>
+      <th class="sortable">Alist. Prom (horas)</th>
+      <th class="sortable">Entrega Prom (días cal.)</th>
+      <th class="sortable">Entrega Prom (horas)</th>
+      <th class="sortable">Total Prom (días cal.)</th>
       <th class="sortable">P50 Entrega</th>
       <th class="sortable">P90 Entrega</th>
     </tr></thead><tbody id="ti-tbody"></tbody></table></div>
@@ -1318,15 +1308,45 @@ function buildNovedades(data){
 // Estado de filtros de tiempos
 const TS={ciudad:'',tipo:'',mes:'',origen:''};
 
+// Convierte días decimales a horas y minutos legibles
+function fmtHrs(dias){
+  if(dias===null||isNaN(dias))return '';
+  const h=Math.round(dias*24);
+  if(h<24)return `≈ ${h} h`;
+  const d=Math.floor(h/24),r=h%24;
+  return r>0?`≈ ${d}d ${r}h`:`≈ ${d} días`;
+}
+
+// Detecta las columnas de tiempos pre-calculados en la base
+function detectTimeCols(data){
+  if(!data.length)return{fAlist:null,fEntr:null,fFecha:null};
+  const cols=Object.keys(data[0]);
+  const findCol=(...names)=>{
+    for(const n of names){
+      const f=cols.find(c=>N(c)===N(n));
+      if(f)return f;
+      const f2=cols.find(c=>N(c).includes(N(n)));
+      if(f2)return f2;
+    }
+    return null;
+  };
+  return{
+    fAlist:findCol('TIEMPO CREACION A ACEPTACION','tiempo creacion a aceptacion','tiempo_creacion_aceptacion','alistamiento'),
+    fEntr: findCol('TIEMPO ACEPTACION A FINALIZACION','tiempo aceptacion a finalizacion','tiempo_aceptacion_finalizacion','entrega'),
+    fFecha:findCol('fecha_entrega','fecha_de_entrega','fecha entrega'),
+  };
+}
+
 function getTiemposFiltered(base){
   let d=[...base];
   if(TS.ciudad) d=d.filter(r=>getCiu(r)===TS.ciudad);
   if(TS.tipo)   d=d.filter(r=>getTipo(r)===TS.tipo);
   if(TS.origen) d=d.filter(r=>r._o===TS.origen);
   if(TS.mes){
+    const {fFecha}=detectTimeCols(base);
     d=d.filter(r=>{
-      const raw=r['fecha_creacion']||r['FECHA_CREACION']||r[Object.keys(r).find(k=>N(k).includes('creacion'))||'']||'';
-      const date=parseDate(raw.toString());
+      const raw=(fFecha?r[fFecha]:null)||r[F.fecha]||'';
+      const date=getFechaFromRaw(raw.toString());
       if(!date)return false;
       const k=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
       return k===TS.mes;
@@ -1335,30 +1355,39 @@ function getTiemposFiltered(base){
   return d;
 }
 
-function calcTiemposRow(data){
-  // Detectar columnas de fechas necesarias
-  if(!data.length)return null;
-  const cols=Object.keys(data[0]);
-  const findCol=(...names)=>{for(const n of names){const f=cols.find(c=>N(c)===N(n)||N(c).includes(N(n)));if(f)return f;}return null;};
-  const fCrea=findCol('fecha_creacion');
-  const fAcept=findCol('fecha_aceptacion_final');
-  const fCierre=findCol('fecha_cierre_final');
+// Parsea un valor numérico de días (puede ser decimal como 1.75 o string)
+function parseDias(raw){
+  if(raw===null||raw===undefined||raw==='')return null;
+  const v=parseFloat(raw.toString().replace(',','.'));
+  return isNaN(v)||v<0||v>3650?null:v;
+}
 
-  if(!fCrea||!fAcept||!fCierre)return null;
+// Obtiene fecha desde valor raw (serial excel o string)
+function getFechaFromRaw(raw){
+  if(!raw)return null;
+  const s=raw.toString().trim();
+  if(!s)return null;
+  // Serial Excel (número)
+  const num=parseFloat(s);
+  if(!isNaN(num)&&num>40000&&num<60000){
+    // Serial Excel: días desde 1/1/1900 (con bug del año bisiesto 1900)
+    const d=new Date((num-25569)*86400*1000);
+    return d;
+  }
+  return parseDate(s);
+}
+
+function calcTiemposRow(data){
+  if(!data.length)return null;
+  const {fAlist,fEntr}=detectTimeCols(data);
+  if(!fAlist&&!fEntr)return null;
 
   const alistVals=[],entreVals=[];
   data.forEach(r=>{
-    const d1=parseDate((r[fCrea]||'').toString());
-    const d2=parseDate((r[fAcept]||'').toString());
-    const d3=parseDate((r[fCierre]||'').toString());
-    if(d1&&d2){
-      const a=businessDaysCO(d1,d2);
-      if(a!==null&&a>=0&&a<365)alistVals.push(a);
-    }
-    if(d2&&d3){
-      const e=businessDaysCO(d2,d3);
-      if(e!==null&&e>=0&&e<365)entreVals.push(e);
-    }
+    const a=parseDias(fAlist?r[fAlist]:null);
+    const e=parseDias(fEntr?r[fEntr]:null);
+    if(a!==null)alistVals.push(a);
+    if(e!==null)entreVals.push(e);
   });
   if(!alistVals.length&&!entreVals.length)return null;
   const avg=arr=>arr.length?arr.reduce((a,b)=>a+b)/arr.length:null;
@@ -1367,12 +1396,14 @@ function calcTiemposRow(data){
     nAlist:alistVals.length,nEntrega:entreVals.length,
     avgAlist:avg(alistVals),avgEntrega:avg(entreVals),
     p50:percentile(entreVals,50),p90:percentile(entreVals,90),
-    alistVals,entreVals,fCrea,fAcept,fCierre
+    alistVals,entreVals,fAlist,fEntr
   };
 }
 
 function buildTiempos(baseData){
-  // Poblar filtros
+  const {fAlist,fEntr,fFecha}=detectTimeCols(baseData);
+
+  // Poblar filtros (solo 1 vez)
   const tfCiu=document.getElementById('tf-ciudad');
   const tfTipo=document.getElementById('tf-tipo');
   const tfMes=document.getElementById('tf-mes');
@@ -1384,11 +1415,14 @@ function buildTiempos(baseData){
     const tipos=[...new Set(baseData.map(r=>getTipo(r)).filter(t=>t!=='SIN TIPO'))].sort();
     tipos.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tfTipo.appendChild(o);});
   }
+  // Mes filtro: usar fecha_entrega
   if(tfMes&&tfMes.options.length<=1){
-    const cols=baseData.length?Object.keys(baseData[0]):[];
-    const fCrea=cols.find(c=>N(c).includes('fecha_creacion')||N(c)==='fecha_creacion');
-    if(fCrea){
-      const months=[...new Set(baseData.map(r=>{const d=parseDate((r[fCrea]||'').toString());return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`:null;}).filter(Boolean))].sort();
+    const fF=fFecha||F.fecha;
+    if(fF){
+      const months=[...new Set(baseData.map(r=>{
+        const d=getFechaFromRaw((r[fF]||'').toString());
+        return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`:null;
+      }).filter(Boolean))].sort();
       months.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;tfMes.appendChild(o);});
     }
   }
@@ -1396,50 +1430,51 @@ function buildTiempos(baseData){
   const data=getTiemposFiltered(baseData);
   const res=calcTiemposRow(data);
   if(!res){
-    ['tk-alist','tk-entrega','tk-total','tk-p50','tk-p90','tk-n'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
+    ['tk-alist','tk-entrega','tk-total','tk-p50','tk-p90','tk-n','tk-alist-hrs','tk-entrega-hrs','tk-total-hrs'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
     return;
   }
-  const {avgAlist,avgEntrega,p50,p90,alistVals,entreVals,nAlist,nEntrega,fCrea,fAcept,fCierre}=res;
+  const {avgAlist,avgEntrega,p50,p90,alistVals,entreVals,nAlist,nEntrega}=res;
 
   // KPIs
   const S=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  S('tk-alist',avgAlist!==null?avgAlist.toFixed(1):'—');
-  S('tk-alist-hrs',avgAlist!==null?`≈ ${(avgAlist*8).toFixed(0)} horas hábiles`:'');
-  S('tk-entrega',avgEntrega!==null?avgEntrega.toFixed(1):'—');
-  S('tk-entrega-hrs',avgEntrega!==null?`≈ ${(avgEntrega*8).toFixed(0)} horas hábiles`:'');
+  S('tk-alist',avgAlist!==null?avgAlist.toFixed(2):'—');
+  S('tk-alist-hrs',avgAlist!==null?fmtHrs(avgAlist):'');
+  S('tk-entrega',avgEntrega!==null?avgEntrega.toFixed(2):'—');
+  S('tk-entrega-hrs',avgEntrega!==null?fmtHrs(avgEntrega):'');
   const totalAvg=(avgAlist!==null&&avgEntrega!==null)?avgAlist+avgEntrega:null;
-  S('tk-total',totalAvg!==null?totalAvg.toFixed(1):'—');
-  S('tk-total-hrs',totalAvg!==null?`≈ ${(totalAvg*8).toFixed(0)} horas hábiles`:'');
-  S('tk-p50',p50!==null?p50.toFixed(1):'—');
-  S('tk-p90',p90!==null?p90.toFixed(1):'—');
+  S('tk-total',totalAvg!==null?totalAvg.toFixed(2):'—');
+  S('tk-total-hrs',totalAvg!==null?fmtHrs(totalAvg):'');
+  S('tk-p50',p50!==null?p50.toFixed(2):'—');
+  S('tk-p90',p90!==null?p90.toFixed(2):'—');
   S('tk-n',fmt(Math.max(nAlist,nEntrega)));
 
-  // --- GRÁFICA 1: Barras apiladas por mes ---
-  const cols=data.length?Object.keys(data[0]):[];
-  const fCreaLocal=cols.find(c=>N(c).includes('fecha_creacion'))||fCrea;
+  const avgArr=arr=>arr.length?arr.reduce((a,b)=>a+b)/arr.length:0;
+
+  // --- GRÁFICA 1: Barras apiladas por mes (usando fecha_entrega) ---
+  const fF=fFecha||F.fecha;
   const mesGroup={};
   data.forEach(r=>{
-    const d1=parseDate((r[fCreaLocal]||'').toString());
-    const d2=parseDate((r[fAcept]||'').toString());
-    const d3=parseDate((r[fCierre]||'').toString());
-    if(!d1)return;
-    const k=`${d1.getFullYear()}-${String(d1.getMonth()+1).padStart(2,'0')}`;
+    const d=fF?getFechaFromRaw((r[fF]||'').toString()):null;
+    if(!d)return;
+    const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     if(!mesGroup[k])mesGroup[k]={a:[],e:[]};
-    if(d1&&d2){const a=businessDaysCO(d1,d2);if(a!==null&&a>=0&&a<365)mesGroup[k].a.push(a);}
-    if(d2&&d3){const e=businessDaysCO(d2,d3);if(e!==null&&e>=0&&e<365)mesGroup[k].e.push(e);}
+    const a=parseDias(fAlist?r[fAlist]:null);
+    const e=parseDias(fEntr?r[fEntr]:null);
+    if(a!==null)mesGroup[k].a.push(a);
+    if(e!==null)mesGroup[k].e.push(e);
   });
   const mesKeys=Object.keys(mesGroup).sort();
-  const avgArr=arr=>arr.length?arr.reduce((a,b)=>a+b)/arr.length:0;
   dc('ch-ti-mes');const ctxMes=document.getElementById('ch-ti-mes');if(ctxMes){
     CHS['ch-ti-mes']=new Chart(ctxMes.getContext('2d'),{
       type:'bar',
       data:{labels:mesKeys,datasets:[
-        {label:'Alistamiento (días háb.)',data:mesKeys.map(k=>+(avgArr(mesGroup[k].a).toFixed(2))),backgroundColor:'rgba(139,92,246,.8)',borderRadius:4,stack:'s'},
-        {label:'Entrega (días háb.)',data:mesKeys.map(k=>+(avgArr(mesGroup[k].e).toFixed(2))),backgroundColor:'rgba(0,85,150,.8)',borderRadius:4,stack:'s'},
+        {label:'Alistamiento (días cal.)',data:mesKeys.map(k=>+(avgArr(mesGroup[k].a).toFixed(2))),backgroundColor:'rgba(139,92,246,.8)',borderRadius:4,stack:'s'},
+        {label:'Entrega (días cal.)',data:mesKeys.map(k=>+(avgArr(mesGroup[k].e).toFixed(2))),backgroundColor:'rgba(0,85,150,.8)',borderRadius:4,stack:'s'},
       ]},
-      options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+      options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw} días · ${fmtHrs(c.raw)}`}}},
         scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false},stacked:true},
-                y:{beginAtZero:true,stacked:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'},title:{display:true,text:'Días hábiles',font:{family:'DM Sans',size:10}}}}}
+                y:{beginAtZero:true,stacked:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'},title:{display:true,text:'Días calendario',font:{family:'DM Sans',size:10}}}}}
     });
   }
 
@@ -1458,16 +1493,15 @@ function buildTiempos(baseData){
     });
   }
 
-  // --- GRÁFICA 3: Top ciudades alistamiento ---
+  // --- GRÁFICA 3: Top ciudades alistamiento y entrega ---
   const cityAlist={},cityEntr={};
   data.forEach(r=>{
     const city=getCiu(r);if(city==='SIN CIUDAD')return;
-    const d1=parseDate((r[fCreaLocal]||'').toString());
-    const d2=parseDate((r[fAcept]||'').toString());
-    const d3=parseDate((r[fCierre]||'').toString());
     if(!cityAlist[city])cityAlist[city]=[];if(!cityEntr[city])cityEntr[city]=[];
-    if(d1&&d2){const a=businessDaysCO(d1,d2);if(a!==null&&a>=0&&a<365)cityAlist[city].push(a);}
-    if(d2&&d3){const e=businessDaysCO(d2,d3);if(e!==null&&e>=0&&e<365)cityEntr[city].push(e);}
+    const a=parseDias(fAlist?r[fAlist]:null);
+    const e=parseDias(fEntr?r[fEntr]:null);
+    if(a!==null)cityAlist[city].push(a);
+    if(e!==null)cityEntr[city].push(e);
   });
   const topAlistCiu=Object.entries(cityAlist).filter(([,v])=>v.length>=3).map(([c,v])=>[c,avgArr(v)]).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const topEntrCiu=Object.entries(cityEntr).filter(([,v])=>v.length>=3).map(([c,v])=>[c,avgArr(v)]).sort((a,b)=>b[1]-a[1]).slice(0,10);
@@ -1475,7 +1509,7 @@ function buildTiempos(baseData){
   dc('ch-ti-alist-ciu');const ctxAC=document.getElementById('ch-ti-alist-ciu');if(ctxAC&&topAlistCiu.length){
     CHS['ch-ti-alist-ciu']=new Chart(ctxAC.getContext('2d'),{
       type:'bar',data:{labels:topAlistCiu.map(x=>x[0].slice(0,14)),datasets:[{data:topAlistCiu.map(x=>+x[1].toFixed(2)),backgroundColor:'rgba(139,92,246,.8)',borderRadius:5}]},
-      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} días hábiles · ${(c.raw*8).toFixed(0)} horas`}}},
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} días · ${fmtHrs(c.raw)}`}}},
         scales:{x:{ticks:{font:{family:'DM Sans',size:9}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
     });
   }
@@ -1484,7 +1518,7 @@ function buildTiempos(baseData){
     const colors=topEntrCiu.map(([,v])=>v<=1?'#10b981':v<=3?'#f59e0b':'#ef4444');
     CHS['ch-ti-entr-ciu']=new Chart(ctxEC.getContext('2d'),{
       type:'bar',data:{labels:topEntrCiu.map(x=>x[0].slice(0,14)),datasets:[{data:topEntrCiu.map(x=>+x[1].toFixed(2)),backgroundColor:colors,borderRadius:5}]},
-      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} días hábiles · ${(c.raw*8).toFixed(0)} horas`}}},
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} días · ${fmtHrs(c.raw)}`}}},
         scales:{x:{ticks:{font:{family:'DM Sans',size:9}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
     });
   }
@@ -1494,21 +1528,21 @@ function buildTiempos(baseData){
   data.forEach(r=>{
     const t=getTipo(r);if(t==='SIN TIPO')return;
     if(!tipoAlist[t])tipoAlist[t]=[];if(!tipoEntr[t])tipoEntr[t]=[];
-    const d1=parseDate((r[fCreaLocal]||'').toString());
-    const d2=parseDate((r[fAcept]||'').toString());
-    const d3=parseDate((r[fCierre]||'').toString());
-    if(d1&&d2){const a=businessDaysCO(d1,d2);if(a!==null&&a>=0&&a<365)tipoAlist[t].push(a);}
-    if(d2&&d3){const e=businessDaysCO(d2,d3);if(e!==null&&e>=0&&e<365)tipoEntr[t].push(e);}
+    const a=parseDias(fAlist?r[fAlist]:null);
+    const e=parseDias(fEntr?r[fEntr]:null);
+    if(a!==null)tipoAlist[t].push(a);
+    if(e!==null)tipoEntr[t].push(e);
   });
   const tiposSorted=Object.keys(tipoAlist).filter(t=>tipoAlist[t].length>=3).sort((a,b)=>avgArr(tipoAlist[b])-avgArr(tipoAlist[a])).slice(0,8);
   dc('ch-ti-tipo');const ctxT=document.getElementById('ch-ti-tipo');if(ctxT&&tiposSorted.length){
     CHS['ch-ti-tipo']=new Chart(ctxT.getContext('2d'),{
       type:'bar',
       data:{labels:tiposSorted.map(t=>t.slice(0,18)),datasets:[
-        {label:'Alistamiento',data:tiposSorted.map(t=>+avgArr(tipoAlist[t]).toFixed(2)),backgroundColor:'rgba(139,92,246,.8)',borderRadius:4},
-        {label:'Entrega',data:tiposSorted.map(t=>+avgArr(tipoEntr[t]||[]).toFixed(2)),backgroundColor:'rgba(0,85,150,.8)',borderRadius:4},
+        {label:'Alistamiento (días cal.)',data:tiposSorted.map(t=>+avgArr(tipoAlist[t]).toFixed(2)),backgroundColor:'rgba(139,92,246,.8)',borderRadius:4},
+        {label:'Entrega (días cal.)',data:tiposSorted.map(t=>+avgArr(tipoEntr[t]||[]).toFixed(2)),backgroundColor:'rgba(0,85,150,.8)',borderRadius:4},
       ]},
-      options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+      options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw} días · ${fmtHrs(c.raw)}`}}},
         scales:{x:{ticks:{font:{family:'DM Sans',size:9}},grid:{display:false}},
                 y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
     });
@@ -1518,21 +1552,20 @@ function buildTiempos(baseData){
   const ogAlist={NC:[],CROSS:[]},ogEntr={NC:[],CROSS:[]};
   data.forEach(r=>{
     const og=r._o==='NC'?'NC':'CROSS';
-    const d1=parseDate((r[fCreaLocal]||'').toString());
-    const d2=parseDate((r[fAcept]||'').toString());
-    const d3=parseDate((r[fCierre]||'').toString());
-    if(d1&&d2){const a=businessDaysCO(d1,d2);if(a!==null&&a>=0&&a<365)ogAlist[og].push(a);}
-    if(d2&&d3){const e=businessDaysCO(d2,d3);if(e!==null&&e>=0&&e<365)ogEntr[og].push(e);}
+    const a=parseDias(fAlist?r[fAlist]:null);
+    const e=parseDias(fEntr?r[fEntr]:null);
+    if(a!==null)ogAlist[og].push(a);
+    if(e!==null)ogEntr[og].push(e);
   });
   dc('ch-ti-og');const ctxOG=document.getElementById('ch-ti-og');if(ctxOG){
     CHS['ch-ti-og']=new Chart(ctxOG.getContext('2d'),{
       type:'bar',
       data:{labels:['NC','CROSS'],datasets:[
-        {label:'Alistamiento (días háb.)',data:[+avgArr(ogAlist.NC).toFixed(2),+avgArr(ogAlist.CROSS).toFixed(2)],backgroundColor:'rgba(139,92,246,.8)',borderRadius:6},
-        {label:'Entrega (días háb.)',data:[+avgArr(ogEntr.NC).toFixed(2),+avgArr(ogEntr.CROSS).toFixed(2)],backgroundColor:'rgba(0,85,150,.8)',borderRadius:6},
+        {label:'Alistamiento (días cal.)',data:[+avgArr(ogAlist.NC).toFixed(2),+avgArr(ogAlist.CROSS).toFixed(2)],backgroundColor:'rgba(139,92,246,.8)',borderRadius:6},
+        {label:'Entrega (días cal.)',data:[+avgArr(ogEntr.NC).toFixed(2),+avgArr(ogEntr.CROSS).toFixed(2)],backgroundColor:'rgba(0,85,150,.8)',borderRadius:6},
       ]},
       options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}},
-        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw} días · ${(c.raw*8).toFixed(0)} hrs`}}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw} días · ${fmtHrs(c.raw)}`}}},
         scales:{x:{ticks:{font:{family:'DM Sans',size:12}},grid:{display:false}},
                 y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
     });
@@ -1555,13 +1588,13 @@ function buildTiempos(baseData){
     return `<tr>
       <td><b>${city}</b></td>
       <td style="font-family:'DM Mono',monospace">${n}</td>
-      <td style="font-family:'DM Mono',monospace">${av.toFixed(1)}</td>
-      <td style="font-family:'DM Mono',monospace;color:#8b5cf6">${(av*8).toFixed(0)} hrs</td>
-      <td><span class="badge ${evCls}">${ev.toFixed(1)} días</span></td>
-      <td style="font-family:'DM Mono',monospace;color:#005596">${(ev*8).toFixed(0)} hrs</td>
-      <td style="font-family:'DM Mono',monospace">${tot.toFixed(1)}</td>
-      <td style="font-family:'DM Mono',monospace">${p50c!==null?p50c.toFixed(1):'—'}</td>
-      <td style="font-family:'DM Mono',monospace">${p90c!==null?p90c.toFixed(1):'—'}</td>
+      <td style="font-family:'DM Mono',monospace">${av.toFixed(2)}</td>
+      <td style="font-family:'DM Mono',monospace;color:#8b5cf6">${fmtHrs(av)}</td>
+      <td><span class="badge ${evCls}">${ev.toFixed(2)} días</span></td>
+      <td style="font-family:'DM Mono',monospace;color:#005596">${fmtHrs(ev)}</td>
+      <td style="font-family:'DM Mono',monospace">${tot.toFixed(2)}</td>
+      <td style="font-family:'DM Mono',monospace">${p50c!==null?p50c.toFixed(2):'—'}</td>
+      <td style="font-family:'DM Mono',monospace">${p90c!==null?p90c.toFixed(2):'—'}</td>
     </tr>`;
   }).join('');
   makeSortable('ti-tbody','ti-thead');
