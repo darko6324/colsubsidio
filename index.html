@@ -28,42 +28,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--gray);color:var(--text);m
 #loader{position:fixed;inset:0;z-index:9999;background:#003f72;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;overflow:hidden}
 #loader::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 60%,rgba(255,209,0,.07) 0%,transparent 60%),radial-gradient(ellipse at 70% 20%,rgba(0,85,150,.4) 0%,transparent 55%);pointer-events:none}
 
-/* Logo SVG animado */
-#ld-logo{animation:logoPulse 2.8s ease-in-out infinite;transform-origin:center}
-#ld-logo .lp1{animation:piece1 2.8s ease-in-out infinite;transform-origin:20px 50px}
-#ld-logo .lp2{animation:piece2 2.8s ease-in-out infinite;transform-origin:60px 25px}
-#ld-logo .lp3{animation:piece3 2.8s ease-in-out infinite;transform-origin:60px 75px}
-#ld-logo .lp4{animation:piece4 2.8s ease-in-out infinite;transform-origin:45px 50px}
-#ld-logo .lp5{animation:piece5 2.8s ease-in-out infinite;transform-origin:45px 50px}
-
+/* Logo SVG — pulso suave sin alterar forma */
+#ld-logo{animation:logoPulse 2.6s ease-in-out infinite;transform-origin:center}
 @keyframes logoPulse{
-  0%,100%{opacity:1;transform:scale(1)}
-  50%{opacity:.9;transform:scale(1.03)}
-}
-@keyframes piece1{
-  0%,100%{transform:translateY(0)}
-  25%{transform:translateY(-5px)}
-  75%{transform:translateY(3px)}
-}
-@keyframes piece2{
-  0%,100%{transform:translate(0,0)}
-  30%{transform:translate(3px,-5px)}
-  70%{transform:translate(-2px,3px)}
-}
-@keyframes piece3{
-  0%,100%{transform:translate(0,0)}
-  30%{transform:translate(3px,5px)}
-  70%{transform:translate(-2px,-3px)}
-}
-@keyframes piece4{
-  0%,100%{transform:translate(0,0) rotate(0deg)}
-  40%{transform:translate(-3px,-4px) rotate(-2deg)}
-  80%{transform:translate(2px,3px) rotate(1deg)}
-}
-@keyframes piece5{
-  0%,100%{transform:translate(0,0) rotate(0deg)}
-  40%{transform:translate(-3px,4px) rotate(2deg)}
-  80%{transform:translate(2px,-3px) rotate(-1deg)}
+  0%,100%{opacity:1;filter:drop-shadow(0 0 0px rgba(255,209,0,0));transform:scale(1)}
+  50%{opacity:.92;filter:drop-shadow(0 0 18px rgba(255,209,0,.55));transform:scale(1.025)}
 }
 
 /* Línea de progreso */
@@ -193,21 +162,27 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   <div class="ldr-dot" style="width:4px;height:4px;left:50%;animation-duration:11s;animation-delay:0.3s"></div>
 
   <!-- Logo Colsubsidio SVG inline fiel al original -->
-  <svg id="ld-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 100" width="272" height="80" style="display:block;margin-bottom:36px">
-    <!-- Barra vertical izquierda -->
-    <rect class="lp1" x="0" y="2" width="22" height="96" fill="#FFD100" rx="1"/>
-    <!-- Bloque superior derecho con corte diagonal -->
-    <polygon class="lp2" points="27,2 84,2 84,47 27,47" fill="#FFD100"/>
-    <!-- Bloque inferior derecho con corte diagonal -->
-    <polygon class="lp3" points="27,53 84,98 27,98" fill="#FFD100"/>
-    <!-- Línea diagonal superior (crea el hueco interno de la K) -->
-    <line x1="27" y1="47" x2="84" y2="2"  stroke="#003f72" stroke-width="3.5"/>
-    <!-- Línea diagonal inferior -->
-    <line x1="27" y1="53" x2="84" y2="98" stroke="#003f72" stroke-width="3.5"/>
-    <!-- Separador horizontal central -->
-    <rect x="27" y="46" width="57" height="8" fill="#003f72"/>
-    <!-- Texto "Colsubsidio" en blanco bold -->
-    <text x="100" y="70" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="50" font-weight="900" fill="white" letter-spacing="-0.5">Colsubsidio</text>
+  <svg id="ld-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 100" width="304" height="80" style="display:block;margin-bottom:36px">
+    <!-- === ÍCONO K DE COLSUBSIDIO === -->
+    <!-- Pieza 1: Barra vertical izquierda -->
+    <rect x="0" y="0" width="20" height="100" fill="#FFD100"/>
+    <!-- Pieza 2: Cuadrado interno superior -->
+    <rect x="24" y="2" width="30" height="44" fill="#FFD100"/>
+    <!-- Pieza 3: Cuadrado interno inferior -->
+    <rect x="24" y="54" width="30" height="44" fill="#FFD100"/>
+    <!-- Pieza 4: Triángulo exterior superior (derecha-arriba) -->
+    <polygon points="58,2 90,2 90,46 58,46" fill="#FFD100"/>
+    <!-- Pieza 5: Triángulo exterior inferior (derecha-abajo) -->
+    <polygon points="58,54 90,98 58,98" fill="#FFD100"/>
+    <!-- Divisiones internas: línea diagonal superior -->
+    <line x1="24" y1="46" x2="90" y2="2"  stroke="#003f72" stroke-width="3"/>
+    <!-- Divisiones internas: línea diagonal inferior -->
+    <line x1="24" y1="54" x2="90" y2="98" stroke="#003f72" stroke-width="3"/>
+    <!-- Gap horizontal central -->
+    <rect x="24" y="46" width="66" height="8" fill="#003f72"/>
+
+    <!-- === TEXTO "Colsubsidio" === -->
+    <text x="106" y="72" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="50" font-weight="900" fill="white" letter-spacing="-0.5">Colsubsidio</text>
   </svg>
 
   <div id="ld-msg">Cargando datos</div>
