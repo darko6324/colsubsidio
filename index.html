@@ -162,28 +162,19 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   <div class="ldr-dot" style="width:4px;height:4px;left:50%;animation-duration:11s;animation-delay:0.3s"></div>
 
   <!-- Logo Colsubsidio SVG inline fiel al original -->
-  <svg id="ld-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 100" width="304" height="80" style="display:block;margin-bottom:36px">
-    <!-- === ÍCONO K DE COLSUBSIDIO === -->
-    <!-- Pieza 1: Barra vertical izquierda -->
-    <rect x="0" y="0" width="20" height="100" fill="#FFD100"/>
-    <!-- Pieza 2: Cuadrado interno superior -->
-    <rect x="24" y="2" width="30" height="44" fill="#FFD100"/>
-    <!-- Pieza 3: Cuadrado interno inferior -->
-    <rect x="24" y="54" width="30" height="44" fill="#FFD100"/>
-    <!-- Pieza 4: Triángulo exterior superior (derecha-arriba) -->
-    <polygon points="58,2 90,2 90,46 58,46" fill="#FFD100"/>
-    <!-- Pieza 5: Triángulo exterior inferior (derecha-abajo) -->
-    <polygon points="58,54 90,98 58,98" fill="#FFD100"/>
-    <!-- Divisiones internas: línea diagonal superior -->
-    <line x1="24" y1="46" x2="90" y2="2"  stroke="#003f72" stroke-width="3"/>
-    <!-- Divisiones internas: línea diagonal inferior -->
-    <line x1="24" y1="54" x2="90" y2="98" stroke="#003f72" stroke-width="3"/>
-    <!-- Gap horizontal central -->
-    <rect x="24" y="46" width="66" height="8" fill="#003f72"/>
-
-    <!-- === TEXTO "Colsubsidio" === -->
-    <text x="106" y="72" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="50" font-weight="900" fill="white" letter-spacing="-0.5">Colsubsidio</text>
-  </svg>
+  <svg id="ld-logo" xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 454 114" style="display:block;margin-bottom:36px;height:68px;width:auto">
+    <!-- 7 piezas exactas extraídas por contorno del logo oficial -->
+    <polygon points="51.5,57.6 51.5,104.4 99.8,104.4" fill="#FFD100"/>
+    <polygon points="98.3,1.5 51.5,0.0 51.5,48.3" fill="#FFD100"/>
+    <polygon points="25.8,27.3 25.8,51.3 33.3,49.8 48.3,51.3 49.8,49.8 48.3,27.3" fill="#FFD100"/>
+    <polygon points="18.2,31.8 0.0,50.0 0.0,54.4 21.0,74.1 22.5,34.8" fill="#FFD100"/>
+    <polygon points="25.8,57.6 25.8,80.1 48.3,101.3 48.3,78.8" fill="#FFD100"/>
+    <polygon points="48.3,3.0 28.8,22.5 31.6,22.5 31.8,24.1 48.3,24.1" fill="#FFD100"/>
+    <polygon points="28.8,54.5 48.3,74.1 48.3,54.5" fill="#FFD100"/>
+    <!-- Texto Colsubsidio -->
+    <text x="114" y="76" font-family="Arial Black, Arial, Helvetica, sans-serif"
+          font-size="50" font-weight="900" fill="white" letter-spacing="-0.5">Colsubsidio</text>
+</svg>
 
   <div id="ld-msg">Cargando datos</div>
   <div id="ld-track"><div id="pb"></div></div>
