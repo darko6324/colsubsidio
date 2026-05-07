@@ -1308,26 +1308,6 @@ function buildNovedades(data){
 // Estado de filtros de tiempos
 const TS={ciudad:'',tipo:'',mes:'',origen:''};
 
-// Convierte H:MM:SS o decimal a horas. Retorna null si no parseable.
-function parseDias(raw){
-  if(raw===null||raw===undefined||raw==='')return null;
-  const s=raw.toString().trim();
-  // Formato H:MM:SS o HH:MM:SS o D.HH:MM:SS (Excel puede exportar como días decimales con fracción)
-  const mTime=s.match(/^(\d+):(\d{2}):(\d{2})$/);
-  if(mTime){
-    const h=parseInt(mTime[1]),m=parseInt(mTime[2]),sec=parseInt(mTime[3]);
-    return h+m/60+sec/3600; // resultado en horas
-  }
-  // Número decimal (días, como viene de Excel serial): convertir a horas
-  const num=parseFloat(s.replace(',','.'));
-  if(!isNaN(num)&&num>=0&&num<3650){
-    // Si es < 5 probablemente ya son días (Excel time fraction), convertir a horas
-    // Si es >= 5, probablemente ya son horas directamente
-    return num<5?num*24:num;
-  }
-  return null;
-}
-
 // Formatea horas a string legible: "2h 30m" o "1d 4h"
 function fmtHrs(horas){
   if(horas===null||isNaN(horas))return '';
@@ -1383,11 +1363,24 @@ function getTiemposFiltered(base){
   return d;
 }
 
-// Parsea un valor numérico de días (puede ser decimal como 1.75 o string)
+// Convierte el valor de tiempo de Google Sheets CSV a horas.
+// Google Sheets exporta duraciones (timedelta) como fracción decimal de día:
+//   ej: 1.751389 → 42.03h (1 día 18h 1min)
+//   ej: 0.001111 → 0.027h (≈ 1.6 min)
+// También soporta formato H:MM:SS por compatibilidad.
 function parseDias(raw){
   if(raw===null||raw===undefined||raw==='')return null;
-  const v=parseFloat(raw.toString().replace(',','.'));
-  return isNaN(v)||v<0||v>3650?null:v;
+  const s=raw.toString().trim();
+  if(!s)return null;
+  // Formato textual H:MM:SS
+  const mTime=s.match(/^(\d+):(\d{2}):(\d{2})$/);
+  if(mTime){
+    return parseInt(mTime[1])+parseInt(mTime[2])/60+parseInt(mTime[3])/3600;
+  }
+  // Decimal de días → convertir siempre a horas (×24)
+  const v=parseFloat(s.replace(',','.'));
+  if(isNaN(v)||v<0||v>365)return null; // >365 días = outlier extremo, excluir
+  return v*24; // días → horas
 }
 
 // Obtiene fecha desde valor raw (serial excel o string)
