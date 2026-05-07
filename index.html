@@ -162,6 +162,7 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
 <nav id="nav">
   <div class="tab on" data-tab="general">📊 General</div>
   <div class="tab" data-tab="novedades">⚠️ Novedades</div>
+  <div class="tab" data-tab="tiempos">⏱️ Tiempos</div>
   <div class="tab" data-tab="mapa">🗺️ Mapa de Calor</div>
   <div class="tab" data-tab="detalle">📋 Detalle</div>
 </nav>
@@ -214,7 +215,7 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
     <div class="kpi" style="--ac:var(--blue);--ac-bg:var(--blue-lt)"><div class="kpi-ic">📦</div><div class="kpi-v" id="k-tot">—</div><div class="kpi-l">Total Guías</div></div>
     <div class="kpi" style="--ac:var(--green);--ac-bg:#d1fae5"><div class="kpi-ic">✅</div><div class="kpi-v" id="k-efe">—</div><div class="kpi-l">Efectivos</div></div>
     <div class="kpi" style="--ac:var(--yellow);--ac-bg:#fef9e7"><div class="kpi-ic">📈</div><div class="kpi-v" id="k-pct">—</div><div class="kpi-l">% Efectividad</div></div>
-    <div class="kpi" style="--ac:var(--purple);--ac-bg:#ede9fe"><div class="kpi-ic">⏱️</div><div class="kpi-v" id="k-pe">—</div><div class="kpi-l">Promedio PE</div><div class="kpi-sub" id="k-pe-u">días hábiles CO</div></div>
+    <div class="kpi" style="--ac:var(--purple);--ac-bg:#ede9fe"><div class="kpi-ic">⏱️</div><div class="kpi-v" id="k-pe">—</div><div class="kpi-l">Promedio PE</div><div class="kpi-sub" id="k-pe-u">días hábiles CO</div><div class="kpi-sub" id="k-pe-hrs" style="color:var(--purple);font-weight:700;font-size:11px;margin-top:1px"></div></div>
     <div class="kpi" style="--ac:var(--cyan);--ac-bg:#e0f7fa"><div class="kpi-ic">🚛</div><div class="kpi-v" id="k-rec">—</div><div class="kpi-l">Recursos Únicos</div></div>
     <div class="kpi" style="--ac:var(--red);--ac-bg:#fee2e2"><div class="kpi-ic">⚠️</div><div class="kpi-v" id="k-nov">—</div><div class="kpi-l">Con Novedad</div></div>
   </div>
@@ -285,6 +286,97 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   </div>
 
   <div class="card"><div class="ct">Tendencia Novedades por Mes</div><div class="cs">% de guías con novedad — tendencia mensual</div><canvas id="ch-nov-tr" style="max-height:220px"></canvas></div>
+</section>
+
+<!-- ==================== TIEMPOS ==================== -->
+<section class="page" id="page-tiempos">
+  <!-- Nota festivos -->
+  <div style="background:linear-gradient(135deg,#ede9fe,#dbeafe);border-left:4px solid #8b5cf6;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:18px">🇨🇴</span>
+    <div>
+      <div style="font-size:12px;font-weight:700;color:#5b21b6">Cálculo con festivos de Colombia</div>
+      <div style="font-size:11px;color:#6d28d9;margin-top:2px">Los tiempos de alistamiento y entrega se calculan en <b>días hábiles</b>, excluyendo sábados, domingos y todos los festivos colombianos (Ley Emiliani + Semana Santa + días fijos). 1 día hábil = 8 horas hábiles.</div>
+    </div>
+  </div>
+
+  <!-- Filtros propios de tiempos -->
+  <div style="background:white;border-radius:13px;box-shadow:var(--sh);padding:14px 18px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Filtrar:</span>
+    <select id="tf-ciudad" class="fsel" style="font-size:12px"><option value="">Todas las ciudades</option></select>
+    <select id="tf-tipo" class="fsel" style="font-size:12px"><option value="">Todos los tipos</option></select>
+    <select id="tf-mes" class="fsel" style="font-size:12px"><option value="">Todos los meses</option></select>
+    <select id="tf-origen" class="fsel" style="font-size:12px"><option value="">NC + CROSS</option><option value="NC">Solo NC</option><option value="CROSS">Solo CROSS</option></select>
+    <button id="tf-reset" class="brst">↺ Limpiar</button>
+  </div>
+
+  <!-- KPIs tiempos -->
+  <div class="kgrid" style="margin-bottom:16px">
+    <div class="kpi" style="--ac:#8b5cf6;--ac-bg:#ede9fe"><div class="kpi-ic">📥</div><div class="kpi-v" id="tk-alist">—</div><div class="kpi-l">Prom. Alistamiento</div><div class="kpi-sub">días hábiles</div><div id="tk-alist-hrs" style="font-size:11px;color:#8b5cf6;font-weight:700;margin-top:2px"></div></div>
+    <div class="kpi" style="--ac:#005596;--ac-bg:#e8f1f9"><div class="kpi-ic">🚚</div><div class="kpi-v" id="tk-entrega">—</div><div class="kpi-l">Prom. Entrega</div><div class="kpi-sub">días hábiles</div><div id="tk-entrega-hrs" style="font-size:11px;color:#005596;font-weight:700;margin-top:2px"></div></div>
+    <div class="kpi" style="--ac:#10b981;--ac-bg:#d1fae5"><div class="kpi-ic">⏰</div><div class="kpi-v" id="tk-total">—</div><div class="kpi-l">Tiempo Total</div><div class="kpi-sub">alist. + entrega</div><div id="tk-total-hrs" style="font-size:11px;color:#10b981;font-weight:700;margin-top:2px"></div></div>
+    <div class="kpi" style="--ac:#f59e0b;--ac-bg:#fef3c7"><div class="kpi-ic">🏆</div><div class="kpi-v" id="tk-p50">—</div><div class="kpi-l">Mediana Entrega</div><div class="kpi-sub">P50 días hábiles</div></div>
+    <div class="kpi" style="--ac:#ef4444;--ac-bg:#fee2e2"><div class="kpi-ic">🔴</div><div class="kpi-v" id="tk-p90">—</div><div class="kpi-l">P90 Entrega</div><div class="kpi-sub">días hábiles</div></div>
+    <div class="kpi" style="--ac:#06b6d4;--ac-bg:#e0f7fa"><div class="kpi-ic">📊</div><div class="kpi-v" id="tk-n">—</div><div class="kpi-l">Registros con fechas</div><div class="kpi-sub">con fechas válidas</div></div>
+  </div>
+
+  <!-- Gráficas fila 1 -->
+  <div class="ceq">
+    <div class="card">
+      <div class="ct">Alistamiento vs Entrega — Promedio por Mes</div>
+      <div class="cs">Días hábiles promedio mes a mes · Barras apiladas</div>
+      <canvas id="ch-ti-mes" style="max-height:260px"></canvas>
+    </div>
+    <div class="card">
+      <div class="ct">Distribución del Tiempo de Entrega</div>
+      <div class="cs">Histograma de días hábiles de entrega</div>
+      <canvas id="ch-ti-hist" style="max-height:260px"></canvas>
+    </div>
+  </div>
+
+  <!-- Gráficas fila 2 -->
+  <div class="ceq">
+    <div class="card">
+      <div class="ct">Top 10 Ciudades — Promedio Alistamiento</div>
+      <div class="cs">Ciudades con mayor promedio de días hábiles de alistamiento</div>
+      <canvas id="ch-ti-alist-ciu" style="max-height:260px"></canvas>
+    </div>
+    <div class="card">
+      <div class="ct">Top 10 Ciudades — Promedio Entrega</div>
+      <div class="cs">Ciudades con mayor promedio de días hábiles de entrega</div>
+      <canvas id="ch-ti-entr-ciu" style="max-height:260px"></canvas>
+    </div>
+  </div>
+
+  <!-- Gráficas fila 3 -->
+  <div class="ceq">
+    <div class="card">
+      <div class="ct">Tiempos por Tipo de Servicio</div>
+      <div class="cs">Alistamiento vs entrega promedio por tipo</div>
+      <canvas id="ch-ti-tipo" style="max-height:260px"></canvas>
+    </div>
+    <div class="card">
+      <div class="ct">NC vs CROSS — Comparativo</div>
+      <div class="cs">Alistamiento y entrega promedio por origen</div>
+      <canvas id="ch-ti-og" style="max-height:260px"></canvas>
+    </div>
+  </div>
+
+  <!-- Tabla detalle por ciudad -->
+  <div class="card">
+    <div class="ct">Detalle por Ciudad</div>
+    <div class="cs">Tiempos promedio de alistamiento y entrega — días hábiles CO · clic en encabezado para ordenar</div>
+    <div class="tw"><table><thead id="ti-thead"><tr>
+      <th class="sortable">Ciudad</th>
+      <th class="sortable">Registros</th>
+      <th class="sortable">Alist. Prom (días)</th>
+      <th class="sortable">Alist. Prom (hrs)</th>
+      <th class="sortable">Entrega Prom (días)</th>
+      <th class="sortable">Entrega Prom (hrs)</th>
+      <th class="sortable">Total Prom (días)</th>
+      <th class="sortable">P50 Entrega</th>
+      <th class="sortable">P90 Entrega</th>
+    </tr></thead><tbody id="ti-tbody"></tbody></table></div>
+  </div>
 </section>
 
 <!-- ==================== MAPA ==================== -->
@@ -1057,16 +1149,90 @@ function buildNovedades(data){
       <div class="nc">${fmt(v)}</div><div class="np">${p}%</div></div>`;
   }).join('');
 
-  // Top ciudades con novedad
-  const cc={};
-  novData.forEach(r=>{const x=getCiu(r);if(x!=='SIN CIUDAD')cc[x]=(cc[x]||0)+1;});
+  // Top ciudades con novedad — con desglose por tipo al hover
+  const cc={},ccTipos={};
+  novData.forEach(r=>{
+    const x=getCiu(r);if(x!=='SIN CIUDAD'){
+      cc[x]=(cc[x]||0)+1;
+      const n=getNov(r);
+      if(!ccTipos[x])ccTipos[x]={};
+      ccTipos[x][n]=(ccTipos[x][n]||0)+1;
+    }
+  });
   const topC=Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  // Paleta para tipos de novedad en el tooltip
+  const NOV_COLORS=['#ef4444','#f97316','#f59e0b','#8b5cf6','#06b6d4','#10b981','#ec4899','#3b82f6','#84cc16','#e11d48','#0ea5e9','#a78bfa'];
   if(topC.length){
-    dc('ch-nov-ciu');const ctx=document.getElementById('ch-nov-ciu');if(ctx)
-    CHS['ch-nov-ciu']=new Chart(ctx.getContext('2d'),{
-      type:'bar',data:{labels:topC.map(x=>x[0].slice(0,14)),datasets:[{data:topC.map(x=>x[1]),backgroundColor:'#ef4444',borderRadius:5}]},
-      options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
-    });
+    dc('ch-nov-ciu');const ctx=document.getElementById('ch-nov-ciu');if(ctx){
+      // Calcular colores de barra según concentración del tipo top
+      const barColors=topC.map(([city,tot])=>{
+        const tipos=ccTipos[city]||{};
+        const topPct=(Object.values(tipos).length?Math.max(...Object.values(tipos))/tot:0);
+        // Más concentrada → rojo más intenso; más distribuida → naranja
+        return topPct>=0.6?'#dc2626':topPct>=0.4?'#ef4444':'#f97316';
+      });
+      CHS['ch-nov-ciu']=new Chart(ctx.getContext('2d'),{
+        type:'bar',
+        data:{labels:topC.map(x=>x[0].slice(0,14)),datasets:[{data:topC.map(x=>x[1]),backgroundColor:barColors,borderRadius:5,hoverBackgroundColor:'#991b1b'}]},
+        options:{
+          responsive:true,
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              enabled:false,
+              external(context){
+                // Tooltip HTML personalizado con desglose
+                const tooltipEl=document.getElementById('nov-ciu-tooltip')||(() => {
+                  const el=document.createElement('div');
+                  el.id='nov-ciu-tooltip';
+                  el.style.cssText='position:absolute;pointer-events:none;z-index:999;background:white;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.18);padding:0;min-width:220px;font-family:"DM Sans",sans-serif;transition:opacity .15s;overflow:hidden';
+                  document.body.appendChild(el);
+                  return el;
+                })();
+                const {chart,tooltip}=context;
+                if(tooltip.opacity===0){tooltipEl.style.opacity='0';return;}
+                const idx=tooltip.dataPoints[0].dataIndex;
+                const [city,total]=topC[idx];
+                const tipos=ccTipos[city]||{};
+                const sorted=Object.entries(tipos).sort((a,b)=>b[1]-a[1]);
+                const rows=sorted.map(([k,v],i)=>{
+                  const pctV=(v/total*100).toFixed(0);
+                  const col=k==='ENTREGADO PREVIAMENTE'?'#06b6d4':NOV_COLORS[i%NOV_COLORS.length];
+                  const barW=Math.round((v/total)*100);
+                  return `<div style="display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid #f1f5f9">
+                    <div style="width:9px;height:9px;border-radius:3px;background:${col};flex-shrink:0"></div>
+                    <div style="flex:1;font-size:11px;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${k}">${k}</div>
+                    <div style="width:50px;height:5px;background:#f1f5f9;border-radius:99px;flex-shrink:0;overflow:hidden"><div style="height:100%;width:${barW}%;background:${col};border-radius:99px"></div></div>
+                    <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:#005596;min-width:26px;text-align:right">${v}</div>
+                    <div style="font-size:10px;color:#94a3b8;min-width:30px;text-align:right">${pctV}%</div>
+                  </div>`;
+                }).join('');
+                tooltipEl.innerHTML=`
+                  <div style="background:#005596;padding:10px 14px;border-radius:12px 12px 0 0">
+                    <div style="color:white;font-weight:700;font-size:13px">${city}</div>
+                    <div style="color:rgba(255,255,255,.65);font-size:11px;margin-top:2px">${total} novedades · ${sorted.length} tipo${sorted.length!==1?'s':''}</div>
+                  </div>
+                  <div style="padding:10px 14px">${rows||'<div style="color:#94a3b8;font-size:11px">Sin datos</div>'}</div>`;
+                const pos=chart.canvas.getBoundingClientRect();
+                const x=pos.left+window.scrollX+tooltip.caretX;
+                const y=pos.top+window.scrollY+tooltip.caretY;
+                tooltipEl.style.left=(x+14)+'px';
+                tooltipEl.style.top=(y-20)+'px';
+                tooltipEl.style.opacity='1';
+              }
+            }
+          },
+          scales:{
+            x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}},
+            y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}
+          },
+          onHover(e,els){
+            ctx.style.cursor=els.length?'pointer':'default';
+            if(!els.length){const t=document.getElementById('nov-ciu-tooltip');if(t)t.style.opacity='0';}
+          }
+        }
+      });
+    }
   }
 
   // NC vs CROSS
@@ -1143,6 +1309,262 @@ function buildNovedades(data){
       options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}},x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}}}
     });
   }
+}
+
+// ════════════════════════════════════════════════
+// BUILD TIEMPOS
+// ════════════════════════════════════════════════
+
+// Estado de filtros de tiempos
+const TS={ciudad:'',tipo:'',mes:'',origen:''};
+
+function getTiemposFiltered(base){
+  let d=[...base];
+  if(TS.ciudad) d=d.filter(r=>getCiu(r)===TS.ciudad);
+  if(TS.tipo)   d=d.filter(r=>getTipo(r)===TS.tipo);
+  if(TS.origen) d=d.filter(r=>r._o===TS.origen);
+  if(TS.mes){
+    d=d.filter(r=>{
+      const raw=r['fecha_creacion']||r['FECHA_CREACION']||r[Object.keys(r).find(k=>N(k).includes('creacion'))||'']||'';
+      const date=parseDate(raw.toString());
+      if(!date)return false;
+      const k=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+      return k===TS.mes;
+    });
+  }
+  return d;
+}
+
+function calcTiemposRow(data){
+  // Detectar columnas de fechas necesarias
+  if(!data.length)return null;
+  const cols=Object.keys(data[0]);
+  const findCol=(...names)=>{for(const n of names){const f=cols.find(c=>N(c)===N(n)||N(c).includes(N(n)));if(f)return f;}return null;};
+  const fCrea=findCol('fecha_creacion');
+  const fAcept=findCol('fecha_aceptacion_final');
+  const fCierre=findCol('fecha_cierre_final');
+
+  if(!fCrea||!fAcept||!fCierre)return null;
+
+  const alistVals=[],entreVals=[];
+  data.forEach(r=>{
+    const d1=parseDate((r[fCrea]||'').toString());
+    const d2=parseDate((r[fAcept]||'').toString());
+    const d3=parseDate((r[fCierre]||'').toString());
+    if(d1&&d2){
+      const a=businessDaysCO(d1,d2);
+      if(a!==null&&a>=0&&a<365)alistVals.push(a);
+    }
+    if(d2&&d3){
+      const e=businessDaysCO(d2,d3);
+      if(e!==null&&e>=0&&e<365)entreVals.push(e);
+    }
+  });
+  if(!alistVals.length&&!entreVals.length)return null;
+  const avg=arr=>arr.length?arr.reduce((a,b)=>a+b)/arr.length:null;
+  const percentile=(arr,p)=>{if(!arr.length)return null;const s=[...arr].sort((a,b)=>a-b);return s[Math.floor((p/100)*s.length)]||s[s.length-1];};
+  return{
+    nAlist:alistVals.length,nEntrega:entreVals.length,
+    avgAlist:avg(alistVals),avgEntrega:avg(entreVals),
+    p50:percentile(entreVals,50),p90:percentile(entreVals,90),
+    alistVals,entreVals,fCrea,fAcept,fCierre
+  };
+}
+
+function buildTiempos(baseData){
+  // Poblar filtros
+  const tfCiu=document.getElementById('tf-ciudad');
+  const tfTipo=document.getElementById('tf-tipo');
+  const tfMes=document.getElementById('tf-mes');
+  if(tfCiu&&tfCiu.options.length<=1){
+    const cities=[...new Set(baseData.map(r=>getCiu(r)).filter(c=>c!=='SIN CIUDAD'))].sort();
+    cities.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;tfCiu.appendChild(o);});
+  }
+  if(tfTipo&&tfTipo.options.length<=1){
+    const tipos=[...new Set(baseData.map(r=>getTipo(r)).filter(t=>t!=='SIN TIPO'))].sort();
+    tipos.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tfTipo.appendChild(o);});
+  }
+  if(tfMes&&tfMes.options.length<=1){
+    const cols=baseData.length?Object.keys(baseData[0]):[];
+    const fCrea=cols.find(c=>N(c).includes('fecha_creacion')||N(c)==='fecha_creacion');
+    if(fCrea){
+      const months=[...new Set(baseData.map(r=>{const d=parseDate((r[fCrea]||'').toString());return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`:null;}).filter(Boolean))].sort();
+      months.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;tfMes.appendChild(o);});
+    }
+  }
+
+  const data=getTiemposFiltered(baseData);
+  const res=calcTiemposRow(data);
+  if(!res){
+    ['tk-alist','tk-entrega','tk-total','tk-p50','tk-p90','tk-n'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
+    return;
+  }
+  const {avgAlist,avgEntrega,p50,p90,alistVals,entreVals,nAlist,nEntrega,fCrea,fAcept,fCierre}=res;
+
+  // KPIs
+  const S=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  S('tk-alist',avgAlist!==null?avgAlist.toFixed(1):'—');
+  S('tk-alist-hrs',avgAlist!==null?`≈ ${(avgAlist*8).toFixed(0)} horas hábiles`:'');
+  S('tk-entrega',avgEntrega!==null?avgEntrega.toFixed(1):'—');
+  S('tk-entrega-hrs',avgEntrega!==null?`≈ ${(avgEntrega*8).toFixed(0)} horas hábiles`:'');
+  const totalAvg=(avgAlist!==null&&avgEntrega!==null)?avgAlist+avgEntrega:null;
+  S('tk-total',totalAvg!==null?totalAvg.toFixed(1):'—');
+  S('tk-total-hrs',totalAvg!==null?`≈ ${(totalAvg*8).toFixed(0)} horas hábiles`:'');
+  S('tk-p50',p50!==null?p50.toFixed(1):'—');
+  S('tk-p90',p90!==null?p90.toFixed(1):'—');
+  S('tk-n',fmt(Math.max(nAlist,nEntrega)));
+
+  // --- GRÁFICA 1: Barras apiladas por mes ---
+  const cols=data.length?Object.keys(data[0]):[];
+  const fCreaLocal=cols.find(c=>N(c).includes('fecha_creacion'))||fCrea;
+  const mesGroup={};
+  data.forEach(r=>{
+    const d1=parseDate((r[fCreaLocal]||'').toString());
+    const d2=parseDate((r[fAcept]||'').toString());
+    const d3=parseDate((r[fCierre]||'').toString());
+    if(!d1)return;
+    const k=`${d1.getFullYear()}-${String(d1.getMonth()+1).padStart(2,'0')}`;
+    if(!mesGroup[k])mesGroup[k]={a:[],e:[]};
+    if(d1&&d2){const a=businessDaysCO(d1,d2);if(a!==null&&a>=0&&a<365)mesGroup[k].a.push(a);}
+    if(d2&&d3){const e=businessDaysCO(d2,d3);if(e!==null&&e>=0&&e<365)mesGroup[k].e.push(e);}
+  });
+  const mesKeys=Object.keys(mesGroup).sort();
+  const avgArr=arr=>arr.length?arr.reduce((a,b)=>a+b)/arr.length:0;
+  dc('ch-ti-mes');const ctxMes=document.getElementById('ch-ti-mes');if(ctxMes){
+    CHS['ch-ti-mes']=new Chart(ctxMes.getContext('2d'),{
+      type:'bar',
+      data:{labels:mesKeys,datasets:[
+        {label:'Alistamiento (días háb.)',data:mesKeys.map(k=>+(avgArr(mesGroup[k].a).toFixed(2))),backgroundColor:'rgba(139,92,246,.8)',borderRadius:4,stack:'s'},
+        {label:'Entrega (días háb.)',data:mesKeys.map(k=>+(avgArr(mesGroup[k].e).toFixed(2))),backgroundColor:'rgba(0,85,150,.8)',borderRadius:4,stack:'s'},
+      ]},
+      options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+        scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false},stacked:true},
+                y:{beginAtZero:true,stacked:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'},title:{display:true,text:'Días hábiles',font:{family:'DM Sans',size:10}}}}}
+    });
+  }
+
+  // --- GRÁFICA 2: Histograma entrega ---
+  dc('ch-ti-hist');const ctxH=document.getElementById('ch-ti-hist');if(ctxH&&entreVals.length){
+    const bins=[0,0.5,1,2,3,5,7,10,15,30,60];
+    const labels=bins.slice(0,-1).map((v,i)=>`${v}–${bins[i+1]}`);
+    const counts=Array(bins.length-1).fill(0);
+    entreVals.forEach(v=>{for(let i=0;i<bins.length-1;i++){if(v>=bins[i]&&v<bins[i+1]){counts[i]++;break;}}});
+    const colors=counts.map((_,i)=>{const mid=(bins[i]+bins[i+1])/2;return mid<=1?'#10b981':mid<=3?'#f59e0b':'#ef4444';});
+    CHS['ch-ti-hist']=new Chart(ctxH.getContext('2d'),{
+      type:'bar',data:{labels,datasets:[{data:counts,backgroundColor:colors,borderRadius:4}]},
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} registros`}}},
+        scales:{x:{ticks:{font:{family:'DM Sans',size:9}},grid:{display:false}},
+                y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+    });
+  }
+
+  // --- GRÁFICA 3: Top ciudades alistamiento ---
+  const cityAlist={},cityEntr={};
+  data.forEach(r=>{
+    const city=getCiu(r);if(city==='SIN CIUDAD')return;
+    const d1=parseDate((r[fCreaLocal]||'').toString());
+    const d2=parseDate((r[fAcept]||'').toString());
+    const d3=parseDate((r[fCierre]||'').toString());
+    if(!cityAlist[city])cityAlist[city]=[];if(!cityEntr[city])cityEntr[city]=[];
+    if(d1&&d2){const a=businessDaysCO(d1,d2);if(a!==null&&a>=0&&a<365)cityAlist[city].push(a);}
+    if(d2&&d3){const e=businessDaysCO(d2,d3);if(e!==null&&e>=0&&e<365)cityEntr[city].push(e);}
+  });
+  const topAlistCiu=Object.entries(cityAlist).filter(([,v])=>v.length>=3).map(([c,v])=>[c,avgArr(v)]).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const topEntrCiu=Object.entries(cityEntr).filter(([,v])=>v.length>=3).map(([c,v])=>[c,avgArr(v)]).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  dc('ch-ti-alist-ciu');const ctxAC=document.getElementById('ch-ti-alist-ciu');if(ctxAC&&topAlistCiu.length){
+    CHS['ch-ti-alist-ciu']=new Chart(ctxAC.getContext('2d'),{
+      type:'bar',data:{labels:topAlistCiu.map(x=>x[0].slice(0,14)),datasets:[{data:topAlistCiu.map(x=>+x[1].toFixed(2)),backgroundColor:'rgba(139,92,246,.8)',borderRadius:5}]},
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} días hábiles · ${(c.raw*8).toFixed(0)} horas`}}},
+        scales:{x:{ticks:{font:{family:'DM Sans',size:9}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+    });
+  }
+
+  dc('ch-ti-entr-ciu');const ctxEC=document.getElementById('ch-ti-entr-ciu');if(ctxEC&&topEntrCiu.length){
+    const colors=topEntrCiu.map(([,v])=>v<=1?'#10b981':v<=3?'#f59e0b':'#ef4444');
+    CHS['ch-ti-entr-ciu']=new Chart(ctxEC.getContext('2d'),{
+      type:'bar',data:{labels:topEntrCiu.map(x=>x[0].slice(0,14)),datasets:[{data:topEntrCiu.map(x=>+x[1].toFixed(2)),backgroundColor:colors,borderRadius:5}]},
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} días hábiles · ${(c.raw*8).toFixed(0)} horas`}}},
+        scales:{x:{ticks:{font:{family:'DM Sans',size:9}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+    });
+  }
+
+  // --- GRÁFICA 4: Por tipo de servicio ---
+  const tipoAlist={},tipoEntr={};
+  data.forEach(r=>{
+    const t=getTipo(r);if(t==='SIN TIPO')return;
+    if(!tipoAlist[t])tipoAlist[t]=[];if(!tipoEntr[t])tipoEntr[t]=[];
+    const d1=parseDate((r[fCreaLocal]||'').toString());
+    const d2=parseDate((r[fAcept]||'').toString());
+    const d3=parseDate((r[fCierre]||'').toString());
+    if(d1&&d2){const a=businessDaysCO(d1,d2);if(a!==null&&a>=0&&a<365)tipoAlist[t].push(a);}
+    if(d2&&d3){const e=businessDaysCO(d2,d3);if(e!==null&&e>=0&&e<365)tipoEntr[t].push(e);}
+  });
+  const tiposSorted=Object.keys(tipoAlist).filter(t=>tipoAlist[t].length>=3).sort((a,b)=>avgArr(tipoAlist[b])-avgArr(tipoAlist[a])).slice(0,8);
+  dc('ch-ti-tipo');const ctxT=document.getElementById('ch-ti-tipo');if(ctxT&&tiposSorted.length){
+    CHS['ch-ti-tipo']=new Chart(ctxT.getContext('2d'),{
+      type:'bar',
+      data:{labels:tiposSorted.map(t=>t.slice(0,18)),datasets:[
+        {label:'Alistamiento',data:tiposSorted.map(t=>+avgArr(tipoAlist[t]).toFixed(2)),backgroundColor:'rgba(139,92,246,.8)',borderRadius:4},
+        {label:'Entrega',data:tiposSorted.map(t=>+avgArr(tipoEntr[t]||[]).toFixed(2)),backgroundColor:'rgba(0,85,150,.8)',borderRadius:4},
+      ]},
+      options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}}},
+        scales:{x:{ticks:{font:{family:'DM Sans',size:9}},grid:{display:false}},
+                y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+    });
+  }
+
+  // --- GRÁFICA 5: NC vs CROSS ---
+  const ogAlist={NC:[],CROSS:[]},ogEntr={NC:[],CROSS:[]};
+  data.forEach(r=>{
+    const og=r._o==='NC'?'NC':'CROSS';
+    const d1=parseDate((r[fCreaLocal]||'').toString());
+    const d2=parseDate((r[fAcept]||'').toString());
+    const d3=parseDate((r[fCierre]||'').toString());
+    if(d1&&d2){const a=businessDaysCO(d1,d2);if(a!==null&&a>=0&&a<365)ogAlist[og].push(a);}
+    if(d2&&d3){const e=businessDaysCO(d2,d3);if(e!==null&&e>=0&&e<365)ogEntr[og].push(e);}
+  });
+  dc('ch-ti-og');const ctxOG=document.getElementById('ch-ti-og');if(ctxOG){
+    CHS['ch-ti-og']=new Chart(ctxOG.getContext('2d'),{
+      type:'bar',
+      data:{labels:['NC','CROSS'],datasets:[
+        {label:'Alistamiento (días háb.)',data:[+avgArr(ogAlist.NC).toFixed(2),+avgArr(ogAlist.CROSS).toFixed(2)],backgroundColor:'rgba(139,92,246,.8)',borderRadius:6},
+        {label:'Entrega (días háb.)',data:[+avgArr(ogEntr.NC).toFixed(2),+avgArr(ogEntr.CROSS).toFixed(2)],backgroundColor:'rgba(0,85,150,.8)',borderRadius:6},
+      ]},
+      options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw} días · ${(c.raw*8).toFixed(0)} hrs`}}},
+        scales:{x:{ticks:{font:{family:'DM Sans',size:12}},grid:{display:false}},
+                y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+    });
+  }
+
+  // --- TABLA por ciudad ---
+  const allCities=[...new Set([...Object.keys(cityAlist),...Object.keys(cityEntr)])].filter(c=>c!=='SIN CIUDAD');
+  const tbody=document.getElementById('ti-tbody');if(!tbody)return;
+  const sortedCities=allCities.filter(c=>(cityAlist[c]||[]).length+(cityEntr[c]||[]).length>=2)
+    .sort((a,b)=>(avgArr(cityEntr[b]||[])||0)-(avgArr(cityEntr[a]||[])||0));
+  const percentileArr=(arr,p)=>{if(!arr.length)return null;const s=[...arr].sort((a,b)=>a-b);return s[Math.floor((p/100)*s.length)]||s[s.length-1];};
+  tbody.innerHTML=sortedCities.map(city=>{
+    const av=avgArr(cityAlist[city]||[]);
+    const ev=avgArr(cityEntr[city]||[]);
+    const tot=av+ev;
+    const n=Math.max((cityAlist[city]||[]).length,(cityEntr[city]||[]).length);
+    const p50c=percentileArr(cityEntr[city]||[],50);
+    const p90c=percentileArr(cityEntr[city]||[],90);
+    const evCls=ev<=1?'bg':ev<=3?'by':'br';
+    return `<tr>
+      <td><b>${city}</b></td>
+      <td style="font-family:'DM Mono',monospace">${n}</td>
+      <td style="font-family:'DM Mono',monospace">${av.toFixed(1)}</td>
+      <td style="font-family:'DM Mono',monospace;color:#8b5cf6">${(av*8).toFixed(0)} hrs</td>
+      <td><span class="badge ${evCls}">${ev.toFixed(1)} días</span></td>
+      <td style="font-family:'DM Mono',monospace;color:#005596">${(ev*8).toFixed(0)} hrs</td>
+      <td style="font-family:'DM Mono',monospace">${tot.toFixed(1)}</td>
+      <td style="font-family:'DM Mono',monospace">${p50c!==null?p50c.toFixed(1):'—'}</td>
+      <td style="font-family:'DM Mono',monospace">${p90c!==null?p90c.toFixed(1):'—'}</td>
+    </tr>`;
+  }).join('');
+  makeSortable('ti-tbody','ti-thead');
 }
 
 // ════════════════════════════════════════════════
@@ -1234,11 +1656,13 @@ function update(){
   const S=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   S('k-tot',fmt(k.tot));S('k-efe',fmt(k.ef));S('k-pct',fP(k.pEf));
   S('k-pe',k.avgPE!==null?k.avgPE.toFixed(1):'—');
-  S('k-pe-u',k.peFromDates?'días hábiles CO':'días');S('k-rec',fmt(k.rec));S('k-nov',fmt(k.nv));
+  S('k-pe-u',k.peFromDates?'días hábiles CO':'días');
+  if(k.avgPE!==null){const hrs=(k.avgPE*8).toFixed(0);S('k-pe-hrs',`≈ ${hrs} horas hábiles`);}
+  S('k-rec',fmt(k.rec));S('k-nov',fmt(k.nv));
   S('hs-g',fmt(k.tot));S('hs-e',fP(k.pEf));S('hs-r',fmt(k.rec));
   buildTrend(data);buildMix(data);buildCiuVol(data);buildCiuEfe(data);
   buildTipoVol(data);buildTipoEfe(data);buildTipoTable(data);
-  buildNovedades(data);buildMap(data);buildDetail(data);
+  buildNovedades(data);buildMap(data);buildDetail(data);buildTiempos(data);
 }
 
 // ════════════════════════════════════════════════
@@ -1387,6 +1811,24 @@ document.getElementById('btn-reset').addEventListener('click',()=>{
   ['f-ciudad','f-tipo','f-nov','f-mes','srch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.querySelectorAll('.pill[data-o]').forEach(p=>p.classList.add('on'));
   update();
+});
+
+// FILTROS TIEMPOS
+['tf-ciudad','tf-tipo','tf-mes','tf-origen'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.addEventListener('change',()=>{
+    TS.ciudad=document.getElementById('tf-ciudad').value;
+    TS.tipo=document.getElementById('tf-tipo').value;
+    TS.mes=document.getElementById('tf-mes').value;
+    TS.origen=document.getElementById('tf-origen').value;
+    buildTiempos(getFiltered());
+  });
+});
+document.getElementById('tf-reset')&&document.getElementById('tf-reset').addEventListener('click',()=>{
+  TS.ciudad='';TS.tipo='';TS.mes='';TS.origen='';
+  ['tf-ciudad','tf-tipo','tf-mes','tf-origen'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  buildTiempos(getFiltered());
 });
 
 // REFRESH BUTTON
