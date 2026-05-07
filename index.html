@@ -1789,55 +1789,126 @@ function showError(){
 async function loadData(isRefresh=false){
   if(!isRefresh){setP(5);setSub('Conectando con Google Sheets…');}
 
-  // NC — intentar varias URL variants
+  // ── FASE 1: cargar NC y mostrar dashboard de inmediato ──────────────
   setSub('Cargando hoja DATA NC…');
   RNC=await tryFetch(URLS_NC);
-  setP(40);
-  console.log(`NC: ${RNC.length} filas | fp: ${fingerprint(RNC).slice(0,60)}`);
+  setP(55);
+  console.log(`NC: ${RNC.length} filas`);
 
-  // CROSS
-  setSub('Cargando hoja DATA CROSS…');
-  RCR=await tryFetch(URLS_CROSS);
-  setP(72);
-  console.log(`CROSS: ${RCR.length} filas | fp: ${fingerprint(RCR).slice(0,60)}`);
+  if(!RNC.length){
+    // Si NC falla, intentar igual con CROSS antes de mostrar error
+    setSub('NC sin datos, cargando CROSS…');
+    RCR=await tryFetch(URLS_CROSS);
+    if(!RCR.length){showError();return;}
+  }
 
-  // Verificar que son hojas diferentes
-  if(RNC.length>0&&RCR.length>0&&fingerprint(RNC)===fingerprint(RCR)){
-    // Mismas columnas — verificar si primer registro es igual (misma hoja)
-    const firstNC=JSON.stringify(Object.values(RNC[0]).slice(0,3));
-    const firstCR=JSON.stringify(Object.values(RCR[0]).slice(0,3));
-    if(firstNC===firstCR){
-      console.warn('⚠️ NC y CROSS parecen ser la misma hoja. Marcando NC con _hoja=NC');
+  // Mostrar dashboard con NC ya cargado
+  const allNC=[...RNC];
+  setSub(`Procesando ${allNC.length.toLocaleString('es-CO')} registros NC…`);
+  detectFields(allNC);
+  const lastDateNC=getLastDate(allNC);
+  if(lastDateNC) document.getElementById('hdr-last').textContent=lastDateNC.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+  populateFilters(allNC);
+  setP(80);
+  update();
+  setP(100);
+
+  // Ocultar loader — usuario ya puede interactuar
+  if(!isRefresh) setTimeout(()=>document.getElementById('loader').style.display='none',200);
+
+  // Mostrar banner "cargando CROSS" si NC tuvo datos
+  if(RNC.length){
+    showCrossLoadingBanner();
+  }
+
+  // ── FASE 2: cargar CROSS en background ───────────────────────────────
+  // Pequeño delay para no bloquear el render inicial
+  setTimeout(async()=>{
+    try{
+      if(!RCR.length){
+        // Solo buscar CROSS si no lo cargamos ya arriba
+        RCR=await tryFetch(URLS_CROSS);
+      }
+      console.log(`CROSS: ${RCR.length} filas`);
+
+      hideCrossLoadingBanner();
+
+      if(!RCR.length){
+        showCrossBanner('⚠️ CROSS sin datos — mostrando solo NC','#f59e0b');
+        return;
+      }
+
+      // Verificar que no es la misma hoja
+      const fp1=fingerprint(RNC),fp2=fingerprint(RCR);
+      if(fp1===fp2){
+        const f1=JSON.stringify(Object.values(RNC[0]).slice(0,3));
+        const f2=JSON.stringify(Object.values(RCR[0]).slice(0,3));
+        if(f1===f2){console.warn('⚠️ NC y CROSS parecen ser la misma hoja');}
+      }
+
+      // ── FASE 3: combinar y actualizar silenciosamente ──────────────
+      const all=[...RNC,...RCR];
+      detectFields(all);
+      const lastDate=getLastDate(all);
+      if(lastDate) document.getElementById('hdr-last').textContent=lastDate.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+      populateFilters(all);
+      update();
+      showCrossBanner(`✅ CROSS cargado — ${RCR.length.toLocaleString('es-CO')} registros añadidos`,'#10b981',3000);
+    }catch(err){
+      hideCrossLoadingBanner();
+      showCrossBanner('⚠️ Error cargando CROSS — datos NC disponibles','#ef4444',5000);
+      console.error('Error cargando CROSS:',err);
     }
-  }
+  }, 100);
+}
 
-  if(!RNC.length&&!RCR.length){showError();return;}
+// Banner inferior no invasivo para estado de CROSS
+function showCrossLoadingBanner(){
+  hideCrossLoadingBanner();
+  const el=document.createElement('div');
+  el.id='cross-banner';
+  el.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#005596;color:white;padding:9px 18px;border-radius:10px;font-size:12px;font-weight:600;font-family:"DM Sans",sans-serif;box-shadow:0 4px 16px rgba(0,85,150,.35);z-index:998;display:flex;align-items:center;gap:9px;white-space:nowrap;transition:opacity .3s';
+  el.innerHTML='<span style="display:inline-block;animation:spin .7s linear infinite">↻</span> Cargando datos CROSS en segundo plano…';
+  document.body.appendChild(el);
+}
 
-  const all=[...RNC,...RCR];
-  setSub(`Procesando ${all.length.toLocaleString('es-CO')} registros…`);
-  detectFields(all);setP(88);
+function hideCrossLoadingBanner(){
+  const el=document.getElementById('cross-banner');
+  if(el){el.style.opacity='0';setTimeout(()=>el.remove(),300);}
+}
 
-  // Fecha de último servicio
-  const lastDate=getLastDate(all);
-  if(lastDate){
-    document.getElementById('hdr-last').textContent=lastDate.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
-  }
-
-  populateFilters(all);setP(95);
-  update();setP(100);
-  if(!isRefresh)setTimeout(()=>document.getElementById('loader').style.display='none',350);
+function showCrossBanner(msg,color,autoDismiss=0){
+  hideCrossLoadingBanner();
+  const el=document.createElement('div');
+  el.id='cross-banner';
+  el.style.cssText=`position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:${color};color:white;padding:9px 18px;border-radius:10px;font-size:12px;font-weight:600;font-family:"DM Sans",sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:998;display:flex;align-items:center;gap:9px;white-space:nowrap;transition:opacity .3s`;
+  el.innerHTML=`${msg}<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,.25);border:none;color:white;border-radius:5px;padding:2px 7px;cursor:pointer;font-size:12px;margin-left:4px">✕</button>`;
+  document.body.appendChild(el);
+  if(autoDismiss) setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.remove(),300);},autoDismiss);
 }
 
 async function retryManual(){
   const nc=(document.getElementById('m-nc')||{}).value||URLS_NC[0];
   const cr=(document.getElementById('m-cr')||{}).value||URLS_CROSS[0];
   document.getElementById('loader').innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:40px;font-family:'DM Sans',sans-serif"><div class="spinner"></div><div id="ld-msg">Reintentando…</div><div class="loader-sub" id="ld-sub"></div><div id="pw"><div id="pb" style="height:4px;background:#005596;border-radius:99px;width:0;transition:width .3s"></div></div></div>`;
-  RNC=await tryFetch([nc]);RCR=await tryFetch([cr]);
-  const all=[...RNC,...RCR];
-  if(!all.length){showError();return;}
-  detectFields(all);populateFilters(all);
-  const ld=getLastDate(all);if(ld)document.getElementById('hdr-last').textContent=ld.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
-  update();document.getElementById('loader').style.display='none';
+  RNC=await tryFetch([nc]);
+  if(!RNC.length){showError();return;}
+  const allNC=[...RNC];
+  detectFields(allNC);populateFilters(allNC);
+  const ld=getLastDate(allNC);if(ld)document.getElementById('hdr-last').textContent=ld.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+  update();
+  document.getElementById('loader').style.display='none';
+  showCrossLoadingBanner();
+  setTimeout(async()=>{
+    RCR=await tryFetch([cr]);
+    hideCrossLoadingBanner();
+    if(!RCR.length){showCrossBanner('⚠️ CROSS sin datos — mostrando solo NC','#f59e0b');return;}
+    const all=[...RNC,...RCR];
+    detectFields(all);populateFilters(all);
+    const ld2=getLastDate(all);if(ld2)document.getElementById('hdr-last').textContent=ld2.toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+    update();
+    showCrossBanner(`✅ CROSS cargado — ${RCR.length.toLocaleString('es-CO')} registros añadidos`,'#10b981',3000);
+  },100);
 }
 
 // ════════════════════════════════════════════════
@@ -1896,26 +1967,14 @@ document.getElementById('tf-reset')&&document.getElementById('tf-reset').addEven
 document.getElementById('btn-refresh').addEventListener('click',async()=>{
   const btn=document.getElementById('btn-refresh');
   const icon=document.getElementById('refresh-icon');
-  btn.disabled=true;
-  btn.style.opacity='0.7';
-  icon.style.display='inline-block';
-  icon.style.animation='spin .7s linear infinite';
-  // Reset data
+  btn.disabled=true;btn.style.opacity='0.7';
+  icon.style.display='inline-block';icon.style.animation='spin .7s linear infinite';
   RNC=[];RCR=[];
-  // Show mini loader overlay on fbar
-  const overlay=document.createElement('div');
-  overlay.id='refresh-overlay';
-  overlay.style.cssText='position:fixed;bottom:0;right:0;margin:18px;background:var(--blue);color:white;padding:10px 18px;border-radius:10px;font-size:12px;font-weight:700;font-family:"DM Sans",sans-serif;box-shadow:0 4px 16px rgba(0,85,150,.3);z-index:999;display:flex;align-items:center;gap:8px';
-  overlay.innerHTML='<span style="animation:spin .7s linear infinite;display:inline-block">↻</span> Actualizando datos…';
-  document.body.appendChild(overlay);
+  hideCrossLoadingBanner();
   try{
     await loadData(true);
   } finally {
-    btn.disabled=false;
-    btn.style.opacity='1';
-    icon.style.animation='none';
-    const ov=document.getElementById('refresh-overlay');
-    if(ov)ov.remove();
+    btn.disabled=false;btn.style.opacity='1';icon.style.animation='none';
   }
 });
 
