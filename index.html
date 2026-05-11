@@ -92,10 +92,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--gray);color:var(--text);m
 .msel-item input[type=checkbox]{width:13px;height:13px;accent-color:var(--blue);flex-shrink:0;cursor:pointer}
 .msel-item .msel-cod{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:auto;flex-shrink:0}
 .msel-empty{padding:12px;text-align:center;font-size:11px;color:var(--muted)}
-.barv-scroll{overflow-x:auto;overflow-y:hidden;width:100%;box-sizing:border-box}
-.barv-scroll::-webkit-scrollbar{height:6px}
-.barv-scroll::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:99px}
-.barv-scroll::-webkit-scrollbar-track{background:#f1f5f9;border-radius:99px}
+.barv-wrap{width:100%;box-sizing:border-box}
+.barv-nav{display:flex;align-items:center;gap:8px;margin-top:6px;padding:0 2px}
+.barv-nav input[type=range]{flex:1;height:4px;accent-color:var(--blue);cursor:pointer}
+.barv-nav span{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;min-width:80px;text-align:right}
+.barv-nav button{height:22px;padding:0 8px;border:1.5px solid var(--border);border-radius:5px;background:white;font-size:11px;cursor:pointer;color:var(--muted);transition:all .15s}
+.barv-nav button:hover{border-color:var(--blue);color:var(--blue)}
 .sort-btn{height:24px;padding:0 9px;background:var(--blue-lt);color:var(--blue);border:1.5px solid var(--border);border-radius:6px;font-family:'DM Mono',sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
 .sort-btn:hover{background:var(--blue);color:white;border-color:var(--blue)}
 .card-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:2px}
@@ -421,11 +423,11 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   <div class="ceq">
     <div class="card">
       <div class="card-hdr"><div class="card-hdr-txt"><div class="ct">Ciudades — Promedio Alistamiento</div><div class="cs">Ciudades con mayor promedio de horas de alistamiento</div></div><button class="sort-btn" id="sb-alist-ciu" onclick="toggleSortV('alist-ciu')">↓ Mayor → Menor</button></div>
-      <div class="barv-scroll"><canvas id="ch-ti-alist-ciu"></canvas></div>
+      <div class="barv-wrap"><canvas id="ch-ti-alist-ciu" style="width:100%;height:260px;display:block"></canvas><div class="barv-nav" id="nav-alist-ciu" style="display:none"><button onclick="barvPan('alist-ciu',-1)">◀</button><input type="range" id="rng-alist-ciu" min="0" value="0" oninput="barvSeek('alist-ciu',+this.value)"><button onclick="barvPan('alist-ciu',1)">▶</button><span id="lbl-alist-ciu"></span></div></div>
     </div>
     <div class="card">
       <div class="card-hdr"><div class="card-hdr-txt"><div class="ct">Ciudades — Promedio Entrega</div><div class="cs">Ciudades con mayor promedio de horas de entrega</div></div><button class="sort-btn" id="sb-entr-ciu" onclick="toggleSortV('entr-ciu')">↓ Mayor → Menor</button></div>
-      <div class="barv-scroll"><canvas id="ch-ti-entr-ciu"></canvas></div>
+      <div class="barv-wrap"><canvas id="ch-ti-entr-ciu" style="width:100%;height:260px;display:block"></canvas><div class="barv-nav" id="nav-entr-ciu" style="display:none"><button onclick="barvPan('entr-ciu',-1)">◀</button><input type="range" id="rng-entr-ciu" min="0" value="0" oninput="barvSeek('entr-ciu',+this.value)"><button onclick="barvPan('entr-ciu',1)">▶</button><span id="lbl-entr-ciu"></span></div></div>
     </div>
   </div>
 
@@ -433,7 +435,7 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   <div class="ceq">
     <div class="card">
       <div class="card-hdr"><div class="card-hdr-txt"><div class="ct">Tiempos por Tipo de Servicio</div><div class="cs">Alistamiento vs entrega promedio por tipo</div></div><button class="sort-btn" id="sb-ti-tipo" onclick="toggleSortV('ti-tipo')">↓ Mayor → Menor</button></div>
-      <div class="barv-scroll"><canvas id="ch-ti-tipo"></canvas></div>
+      <div class="barv-wrap"><canvas id="ch-ti-tipo" style="width:100%;height:260px;display:block"></canvas><div class="barv-nav" id="nav-ti-tipo" style="display:none"><button onclick="barvPan('ti-tipo',-1)">◀</button><input type="range" id="rng-ti-tipo" min="0" value="0" oninput="barvSeek('ti-tipo',+this.value)"><button onclick="barvPan('ti-tipo',1)">▶</button><span id="lbl-ti-tipo"></span></div></div>
     </div>
     <div class="card">
       <div class="ct">NC vs CROSS — Comparativo</div>
@@ -973,45 +975,64 @@ function toggleSort(key){
   else if(key==='espefe')buildNovedades(d);
 }
 
-// Build a scrollable vertical bar chart with dynamic width
+// Paginated vertical bar charts — canvas stays 100% wide, data paginates
+const BARVSTATE={};
+const BARV_PAGE=12; // columns visible at once
+
 function mkBarVScroll(id, labels, datasets, yTickCb, tooltipCb, legendPos){
   if(CHS[id]){CHS[id].destroy();delete CHS[id];}
   const ctx=document.getElementById(id);
   if(!ctx)return;
 
-  const n=labels.length;
-  const nDs=datasets.length||1;
-  const COL_W=nDs>1?58:46;
-  const H=260;
-  const totalW=Math.max(n*COL_W, 300);
+  const key=id.replace('ch-ti-','');
+  const total=labels.length;
+  const pageSize=BARV_PAGE;
+  const offset=BARVSTATE[key]||0;
+  const clampedOffset=Math.min(offset, Math.max(0,total-pageSize));
+  BARVSTATE[key]=clampedOffset;
 
-  // Wrap canvas in .barv-scroll once
-  if(!ctx.parentElement.classList.contains('barv-scroll')){
-    const scroll=document.createElement('div');
-    scroll.className='barv-scroll';
-    ctx.parentElement.insertBefore(scroll,ctx);
-    scroll.appendChild(ctx);
+  // Slice labels and data to current page
+  const visLabels=labels.slice(clampedOffset, clampedOffset+pageSize);
+  const visDatasets=datasets.map(ds=>({...ds,data:ds.data.slice(clampedOffset,clampedOffset+pageSize)}));
+
+  // Update nav controls
+  const nav=document.getElementById('nav-'+key);
+  const rng=document.getElementById('rng-'+key);
+  const lbl=document.getElementById('lbl-'+key);
+  if(nav){
+    if(total>pageSize){
+      nav.style.display='flex';
+      if(rng){rng.max=Math.max(0,total-pageSize);rng.value=clampedOffset;}
+      if(lbl){lbl.textContent=`${clampedOffset+1}–${Math.min(clampedOffset+pageSize,total)} de ${total}`;}
+    } else {
+      nav.style.display='none';
+    }
   }
 
-  // Set canvas SIZE ATTRIBUTES (not CSS) — this is how Chart.js avoids blur
-  const dpr=window.devicePixelRatio||1;
-  ctx.width=totalW*dpr;
-  ctx.height=H*dpr;
-  ctx.style.width=totalW+'px';
-  ctx.style.height=H+'px';
-  ctx.style.display='block';
+  // Store full data for re-pagination
+  BARVSTATE[key+'_labels']=labels;
+  BARVSTATE[key+'_datasets']=datasets;
+  BARVSTATE[key+'_yTickCb']=yTickCb;
+  BARVSTATE[key+'_tooltipCb']=tooltipCb;
+  BARVSTATE[key+'_legendPos']=legendPos;
 
-  CHS[id]=new Chart(ctx.getContext('2d'),{
+  CHS[id]=new Chart(ctx,{
     type:'bar',
-    data:{labels,datasets},
+    data:{labels:visLabels,datasets:visDatasets},
     options:{
-      responsive:false,
+      responsive:true,
       maintainAspectRatio:false,
-      animation:{duration:200},
-      devicePixelRatio:dpr,
+      animation:{duration:150},
       plugins:{
         legend:legendPos?{position:legendPos,labels:{font:{family:'DM Sans',size:10},boxWidth:10}}:{display:false},
-        tooltip:{callbacks:tooltipCb}
+        tooltip:{callbacks:{
+          title:tt=>{
+            const realIdx=clampedOffset+tt[0].dataIndex;
+            if(tooltipCb&&tooltipCb.title) return tooltipCb.title([{dataIndex:realIdx,...tt[0]}]);
+            return tt[0].label;
+          },
+          label:tooltipCb&&tooltipCb.label?tooltipCb.label:undefined
+        }}
       },
       scales:{
         x:{ticks:{font:{family:'DM Sans',size:9},maxRotation:40,autoSkip:false},grid:{display:false}},
@@ -1020,6 +1041,33 @@ function mkBarVScroll(id, labels, datasets, yTickCb, tooltipCb, legendPos){
     }
   });
 }
+
+function barvPan(key,dir){
+  const labels=BARVSTATE[key+'_labels'];
+  if(!labels)return;
+  const cur=BARVSTATE[key]||0;
+  const max=Math.max(0,labels.length-BARV_PAGE);
+  BARVSTATE[key]=Math.max(0,Math.min(cur+dir*Math.ceil(BARV_PAGE/2),max));
+  barvRedraw(key);
+}
+
+function barvSeek(key,val){
+  BARVSTATE[key]=val;
+  barvRedraw(key);
+}
+
+function barvRedraw(key){
+  const id='ch-ti-'+key;
+  mkBarVScroll(id,
+    BARVSTATE[key+'_labels'],
+    BARVSTATE[key+'_datasets'],
+    BARVSTATE[key+'_yTickCb'],
+    BARVSTATE[key+'_tooltipCb'],
+    BARVSTATE[key+'_legendPos']
+  );
+}
+
+
 function toggleSortV(key){
   BSORTV[key]=BSORTV[key]==='desc'?'asc':'desc';
   const btn=document.getElementById('sb-'+key);
