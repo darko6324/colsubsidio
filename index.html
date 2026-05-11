@@ -1005,12 +1005,11 @@ function mkBarH(id,labels,vals,colors,isPct=false,maxV=null,fullLabels=null){
   const tLabels=fullLabels||labels;
   const n=labels.length;
   // Each bar row: 26px bar + spacing. Visible window: max 9 rows (~280px), then scroll
-  const BAR_H=26;   // rendered bar height (px)
-  const ROW_PAD=10; // padding between bars
-  const ROW_H=BAR_H+ROW_PAD;
-  const OVERHEAD=36; // x-axis + top padding
-  const VISIBLE_ROWS=9; // rows shown before scroll activates
-  const totalH=n*ROW_H+OVERHEAD;
+  // Height: each row = 38px, capped at 9 visible rows then scroll
+  const ROW_H=38;
+  const OVERHEAD=32;
+  const VISIBLE_ROWS=9;
+  const totalH=Math.max(n*ROW_H+OVERHEAD, 120);
   const visibleH=Math.min(totalH, VISIBLE_ROWS*ROW_H+OVERHEAD);
   // Wrap canvas in scrollable div (only once)
   const parent=ctx.parentElement;
@@ -1026,7 +1025,7 @@ function mkBarH(id,labels,vals,colors,isPct=false,maxV=null,fullLabels=null){
   ctx.style.width='100%';
   CHS[id]=new Chart(ctx.getContext('2d'),{
     type:'bar',
-    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:4,borderSkipped:false,barThickness:BAR_H}]},
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:4,borderSkipped:false,maxBarThickness:28,minBarLength:4}]},
     options:{responsive:false,maintainAspectRatio:false,indexAxis:'y',
       plugins:{legend:{display:false},tooltip:{callbacks:{
         title:tt=>tLabels[tt[0].dataIndex]||tt[0].label,
