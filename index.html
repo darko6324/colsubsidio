@@ -343,13 +343,13 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   </div>
 
   <div class="ceq">
-    <div class="card"><div class="ct">Top 10 Ciudades con Novedad</div><div class="cs">Volumen de guías con novedad real por ciudad</div><canvas id="ch-nov-ciu"></canvas></div>
+    <div class="card"><div class="ct">Top 10 Ciudades con Novedad</div><div class="cs">Volumen de guías con novedad real por ciudad</div><div class="barv-wrap"><canvas id="ch-nov-ciu" style="width:100%;display:block"></canvas><div class="barv-nav" id="nav-nov-ciu" style="display:none"><button onclick="barvPan('nov-ciu',-1)">◀</button><input type="range" id="rng-nov-ciu" min="0" value="0" oninput="barvSeek('nov-ciu',+this.value)"><button onclick="barvPan('nov-ciu',1)">▶</button><span id="lbl-nov-ciu"></span></div></div></div>
     <div class="card"><div class="ct">Novedades NC vs CROSS</div><div class="cs">Comparativa por modelo de despacho</div><canvas id="ch-nov-og"></canvas></div>
   </div>
 
   <!-- NUEVO: Por Especialidad -->
   <div class="ceq">
-    <div class="card"><div class="ct">Novedades por Especialidad</div><div class="cs">Distribución de novedades según campo especialidad</div><canvas id="ch-nov-esp"></canvas></div>
+    <div class="card"><div class="ct">Novedades por Especialidad</div><div class="cs">Distribución de novedades según campo especialidad</div><div class="barv-wrap"><canvas id="ch-nov-esp" style="width:100%;display:block"></canvas><div class="barv-nav" id="nav-nov-esp" style="display:none"><button onclick="barvPan('nov-esp',-1)">◀</button><input type="range" id="rng-nov-esp" min="0" value="0" oninput="barvSeek('nov-esp',+this.value)"><button onclick="barvPan('nov-esp',1)">▶</button><span id="lbl-nov-esp"></span></div></div></div>
     <div class="card"><div class="card-hdr"><div class="card-hdr-txt"><div class="ct">Efectividad por Especialidad / Convenio</div><div class="cs">% efectividad vs % novedad por especialidad</div></div><button class="sort-btn" id="sb-espefe" onclick="toggleSort('espefe')">↓ Mayor → Menor</button></div><canvas id="ch-esp-efe"></canvas></div>
   </div>
 
@@ -410,7 +410,7 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
     <div class="card">
       <div class="ct">Alistamiento vs Entrega — Promedio por Mes</div>
       <div class="cs">Horas promedio mes a mes · Barras apiladas · Fecha: fecha_entrega</div>
-      <canvas id="ch-ti-mes" style="max-height:260px"></canvas>
+      <div class="barv-wrap"><canvas id="ch-ti-mes" style="width:100%;display:block"></canvas><div class="barv-nav" id="nav-ti-mes" style="display:none"><button onclick="barvPan('ti-mes',-1)">◀</button><input type="range" id="rng-ti-mes" min="0" value="0" oninput="barvSeek('ti-mes',+this.value)"><button onclick="barvPan('ti-mes',1)">▶</button><span id="lbl-ti-mes"></span></div></div>
     </div>
     <div class="card">
       <div class="ct">Distribución del Tiempo de Entrega</div>
@@ -975,6 +975,33 @@ function toggleSort(key){
   else if(key==='espefe')buildNovedades(d);
 }
 
+// Generic paginated vertical bar — shared with all vertical charts
+function mkBarVPaged(id, navKey, labels, datasets, opts){
+  if(CHS[id]){CHS[id].destroy();delete CHS[id];}
+  const ctx=document.getElementById(id);if(!ctx)return;
+  const total=labels.length;
+  const pageSize=BARV_PAGE;
+  const offset=Math.min(BARVSTATE[navKey]||0,Math.max(0,total-pageSize));
+  BARVSTATE[navKey]=offset;
+  const visL=labels.slice(offset,offset+pageSize);
+  const visD=datasets.map(ds=>({...ds,data:ds.data.slice(offset,offset+pageSize)}));
+  const nav=document.getElementById('nav-'+navKey);
+  const rng=document.getElementById('rng-'+navKey);
+  const lbl=document.getElementById('lbl-'+navKey);
+  if(nav){
+    if(total>pageSize){
+      nav.style.display='flex';
+      if(rng){rng.max=Math.max(0,total-pageSize);rng.value=offset;}
+      if(lbl)lbl.textContent=`${offset+1}–${Math.min(offset+pageSize,total)} de ${total}`;
+    } else { nav.style.display='none'; }
+  }
+  BARVSTATE[navKey+'_labels']=labels;
+  BARVSTATE[navKey+'_datasets']=datasets;
+  BARVSTATE[navKey+'_opts']=opts;
+  CHS[id]=new Chart(ctx,{type:'bar',data:{labels:visL,datasets:visD},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:150},...opts}});
+}
+
 // Paginated vertical bar charts — canvas stays 100% wide, data paginates
 const BARVSTATE={};
 const BARV_PAGE=12; // columns visible at once
@@ -1057,14 +1084,16 @@ function barvSeek(key,val){
 }
 
 function barvRedraw(key){
-  const id='ch-ti-'+key;
-  mkBarVScroll(id,
-    BARVSTATE[key+'_labels'],
-    BARVSTATE[key+'_datasets'],
-    BARVSTATE[key+'_yTickCb'],
-    BARVSTATE[key+'_tooltipCb'],
-    BARVSTATE[key+'_legendPos']
-  );
+  const tiKeys=['alist-ciu','entr-ciu','ti-tipo'];
+  if(tiKeys.includes(key)){
+    const id='ch-ti-'+key;
+    mkBarVScroll(id,BARVSTATE[key+'_labels'],BARVSTATE[key+'_datasets'],
+      BARVSTATE[key+'_yTickCb'],BARVSTATE[key+'_tooltipCb'],BARVSTATE[key+'_legendPos']);
+  } else {
+    const idMap={'nov-ciu':'ch-nov-ciu','nov-esp':'ch-nov-esp','ti-mes':'ch-ti-mes'};
+    const id=idMap[key];if(!id)return;
+    mkBarVPaged(id,key,BARVSTATE[key+'_labels'],BARVSTATE[key+'_datasets'],BARVSTATE[key+'_opts']);
+  }
 }
 
 
@@ -1405,77 +1434,24 @@ function buildNovedades(data){
   // Paleta para tipos de novedad en el tooltip
   const NOV_COLORS=['#ef4444','#f97316','#f59e0b','#8b5cf6','#06b6d4','#10b981','#ec4899','#3b82f6','#84cc16','#e11d48','#0ea5e9','#a78bfa'];
   if(topC.length){
-    dc('ch-nov-ciu');const ctx=document.getElementById('ch-nov-ciu');if(ctx){
-      // Calcular colores de barra según concentración del tipo top
-      const barColors=topC.map(([city,tot])=>{
+    if(document.getElementById('ch-nov-ciu')){
+      const novCiuColors=topC.map(([city,tot])=>{
         const tipos=ccTipos[city]||{};
-        const topPct=(Object.values(tipos).length?Math.max(...Object.values(tipos))/tot:0);
-        // Más concentrada → rojo más intenso; más distribuida → naranja
+        const topPct=Object.values(tipos).length?Math.max(...Object.values(tipos))/tot:0;
         return topPct>=0.6?'#dc2626':topPct>=0.4?'#ef4444':'#f97316';
       });
-      CHS['ch-nov-ciu']=new Chart(ctx.getContext('2d'),{
-        type:'bar',
-        data:{labels:topC.map(x=>abreviar(x[0]).slice(0,16)),datasets:[{data:topC.map(x=>x[1]),backgroundColor:barColors,borderRadius:5,hoverBackgroundColor:'#991b1b'}]},
-        options:{
-          responsive:true,
-          plugins:{
-            legend:{display:false},
-            tooltip:{
-              enabled:false,
-              external(context){
-                // Tooltip HTML personalizado con desglose
-                const tooltipEl=document.getElementById('nov-ciu-tooltip')||(() => {
-                  const el=document.createElement('div');
-                  el.id='nov-ciu-tooltip';
-                  el.style.cssText='position:absolute;pointer-events:none;z-index:999;background:white;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.18);padding:0;min-width:220px;font-family:"DM Sans",sans-serif;transition:opacity .15s;overflow:hidden';
-                  document.body.appendChild(el);
-                  return el;
-                })();
-                const {chart,tooltip}=context;
-                if(tooltip.opacity===0){tooltipEl.style.opacity='0';return;}
-                const idx=tooltip.dataPoints[0].dataIndex;
-                const [city,total]=topC[idx];
-                const tipos=ccTipos[city]||{};
-                const sorted=Object.entries(tipos).sort((a,b)=>b[1]-a[1]);
-                const rows=sorted.map(([k,v],i)=>{
-                  const pctV=(v/total*100).toFixed(0);
-                  const col=k==='ENTREGADO PREVIAMENTE'?'#06b6d4':NOV_COLORS[i%NOV_COLORS.length];
-                  const barW=Math.round((v/total)*100);
-                  return `<div style="display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid #f1f5f9">
-                    <div style="width:9px;height:9px;border-radius:3px;background:${col};flex-shrink:0"></div>
-                    <div style="flex:1;font-size:11px;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${k}">${k}</div>
-                    <div style="width:50px;height:5px;background:#f1f5f9;border-radius:99px;flex-shrink:0;overflow:hidden"><div style="height:100%;width:${barW}%;background:${col};border-radius:99px"></div></div>
-                    <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:#005596;min-width:26px;text-align:right">${v}</div>
-                    <div style="font-size:10px;color:#94a3b8;min-width:30px;text-align:right">${pctV}%</div>
-                  </div>`;
-                }).join('');
-                tooltipEl.innerHTML=`
-                  <div style="background:#005596;padding:10px 14px;border-radius:12px 12px 0 0">
-                    <div style="color:white;font-weight:700;font-size:13px">${city}</div>
-                    <div style="color:rgba(255,255,255,.65);font-size:11px;margin-top:2px">${total} novedades · ${sorted.length} tipo${sorted.length!==1?'s':''}</div>
-                  </div>
-                  <div style="padding:10px 14px">${rows||'<div style="color:#94a3b8;font-size:11px">Sin datos</div>'}</div>`;
-                const pos=chart.canvas.getBoundingClientRect();
-                const x=pos.left+window.scrollX+tooltip.caretX;
-                const y=pos.top+window.scrollY+tooltip.caretY;
-                tooltipEl.style.left=(x+14)+'px';
-                tooltipEl.style.top=(y-20)+'px';
-                tooltipEl.style.opacity='1';
-              }
-            }
-          },
-          scales:{
-            x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}},
-            y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}
-          },
-          onHover(e,els){
-            ctx.style.cursor=els.length?'pointer':'default';
-            if(!els.length){const t=document.getElementById('nov-ciu-tooltip');if(t)t.style.opacity='0';}
-          }
-        }
-      });
+      mkBarVPaged('ch-nov-ciu','nov-ciu',
+        topC.map(x=>abreviar(x[0]).slice(0,16)),
+        [{data:topC.map(x=>x[1]),backgroundColor:novCiuColors,borderRadius:5,maxBarThickness:40}],
+        {plugins:{legend:{display:false},
+          tooltip:{callbacks:{
+            title:tt=>topC[tt[0].dataIndex]?topC[tt[0].dataIndex][0]:tt[0].label,
+            label:c=>` ${fmt(c.raw)} novedades`
+          }}},
+          scales:{x:{ticks:{font:{family:'DM Sans',size:10},maxRotation:40},grid:{display:false}},
+                  y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+      );
     }
-  }
 
   // NC vs CROSS
   const ncNov=data.filter(r=>r._o==='NC'), crNov=data.filter(r=>r._o==='CROSS');
@@ -1489,21 +1465,18 @@ function buildNovedades(data){
   data.forEach(r=>{const e=getEsp(r);if(!e||e==='SIN ESPECIALIDAD')return;esp[e]=(esp[e]||0)+1;if(isEf(r))espEf[e]=(espEf[e]||0)+1;});
   const topEsp=Object.entries(esp).sort((a,b)=>b[1]-a[1]);
   if(topEsp.length){
-    dc('ch-nov-esp');const ctx=document.getElementById('ch-nov-esp');if(ctx){
-      // Novedades por especialidad
+    if(document.getElementById('ch-nov-esp')){
       const espNov={};novData.forEach(r=>{const e=getEsp(r);if(e&&e!=='SIN ESPECIALIDAD')espNov[e]=(espNov[e]||0)+1;});
-      const espLabels=topEsp.map(x=>abreviar(x[0]).slice(0,22));
       const espFull=topEsp.map(x=>x[0]);
-      CHS['ch-nov-esp']=new Chart(ctx.getContext('2d'),{
-        type:'bar',
-        data:{labels:espLabels,
-              datasets:[{label:'Total',data:topEsp.map(x=>x[1]),backgroundColor:'rgba(0,85,150,.3)',borderRadius:5},
-                        {label:'Con Novedad',data:topEsp.map(x=>espNov[x[0]]||0),backgroundColor:'#ef4444',borderRadius:5}]},
-        options:{responsive:true,plugins:{
-          legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}},
+      mkBarVPaged('ch-nov-esp','nov-esp',
+        topEsp.map(x=>abreviar(x[0]).slice(0,22)),
+        [{label:'Total',data:topEsp.map(x=>x[1]),backgroundColor:'rgba(0,85,150,.3)',borderRadius:5,maxBarThickness:36},
+         {label:'Con Novedad',data:topEsp.map(x=>espNov[x[0]]||0),backgroundColor:'#ef4444',borderRadius:5,maxBarThickness:36}],
+        {plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}},
           tooltip:{callbacks:{title:tt=>espFull[tt[0].dataIndex]||tt[0].label,label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},
-          scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
-      });
+          scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}},
+                  y:{beginAtZero:true,ticks:{font:{family:'DM Mono',size:10}},grid:{color:'#f1f5f9'}}}}
+      );
     }
     // Efectividad por especialidad
     const valsEfe=topEsp.map(x=>pct(espEf[x[0]]||0,x[1]));
@@ -1773,18 +1746,15 @@ function buildTiempos(baseData){
     if(e!==null)mesGroup[k].e.push(e);
   });
   const mesKeys=Object.keys(mesGroup).sort();
-  dc('ch-ti-mes');const ctxMes=document.getElementById('ch-ti-mes');if(ctxMes){
-    CHS['ch-ti-mes']=new Chart(ctxMes.getContext('2d'),{
-      type:'bar',
-      data:{labels:mesKeys,datasets:[
-        {label:'Alistamiento (horas)',data:mesKeys.map(k=>+avgArr(mesGroup[k].a).toFixed(1)),backgroundColor:'rgba(139,92,246,.8)',borderRadius:4,stack:'s'},
-        {label:'Entrega (horas)',data:mesKeys.map(k=>+avgArr(mesGroup[k].e).toFixed(1)),backgroundColor:'rgba(0,85,150,.8)',borderRadius:4,stack:'s'},
-      ]},
-      options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}},
+  if(document.getElementById('ch-ti-mes')&&mesKeys.length){
+    mkBarVPaged('ch-ti-mes','ti-mes',mesKeys,
+      [{label:'Alistamiento (horas)',data:mesKeys.map(k=>+avgArr(mesGroup[k].a).toFixed(1)),backgroundColor:'rgba(139,92,246,.8)',borderRadius:4,stack:'s',maxBarThickness:40},
+       {label:'Entrega (horas)',data:mesKeys.map(k=>+avgArr(mesGroup[k].e).toFixed(1)),backgroundColor:'rgba(0,85,150,.8)',borderRadius:4,stack:'s',maxBarThickness:40}],
+      {plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}},
         tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtHrs(c.raw)} (${hrsToDias(c.raw)})`}}},
         scales:{x:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false},stacked:true},
-                y:{beginAtZero:true,stacked:true,ticks:{callback:v=>fmtHrs(v),font:{family:'DM Mono',size:9}},grid:{color:'#f1f5f9'},title:{display:true,text:'Horas',font:{family:'DM Sans',size:10}}}}}
-    });
+                y:{beginAtZero:true,stacked:true,ticks:{callback:v=>fmtHrs(v),font:{family:'DM Mono',size:9}},grid:{color:'#f1f5f9'}}}}
+    );
   }
 
   // --- GRÁFICA 2: Histograma entrega (en horas) ---
