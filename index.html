@@ -92,12 +92,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--gray);color:var(--text);m
 .msel-item input[type=checkbox]{width:13px;height:13px;accent-color:var(--blue);flex-shrink:0;cursor:pointer}
 .msel-item .msel-cod{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:auto;flex-shrink:0}
 .msel-empty{padding:12px;text-align:center;font-size:11px;color:var(--muted)}
-.barv-scroll{overflow-x:auto;overflow-y:hidden;width:100%;box-sizing:border-box;display:block}
+.barv-scroll{overflow-x:auto;overflow-y:hidden;width:100%;box-sizing:border-box}
 .barv-scroll::-webkit-scrollbar{height:6px}
 .barv-scroll::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:99px}
-.barv-scroll::-webkit-scrollbar-track{background:#f1f5f9;border-radius:99px;margin:2px}
-.barv-inner{display:block;height:260px}
-.barv-inner canvas{display:block;width:100% !important;height:100% !important}
+.barv-scroll::-webkit-scrollbar-track{background:#f1f5f9;border-radius:99px}
 .sort-btn{height:24px;padding:0 9px;background:var(--blue-lt);color:var(--blue);border:1.5px solid var(--border);border-radius:6px;font-family:'DM Mono',sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
 .sort-btn:hover{background:var(--blue);color:white;border-color:var(--blue)}
 .card-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:2px}
@@ -978,43 +976,39 @@ function toggleSort(key){
 // Build a scrollable vertical bar chart with dynamic width
 function mkBarVScroll(id, labels, datasets, yTickCb, tooltipCb, legendPos){
   if(CHS[id]){CHS[id].destroy();delete CHS[id];}
-  const ctx=document.getElementById(id);if(!ctx)return;
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+
   const n=labels.length;
   const nDs=datasets.length||1;
+  const COL_W=nDs>1?58:46;
+  const H=260;
+  const totalW=Math.max(n*COL_W, 300);
 
-  // Structure: .barv-scroll > .barv-inner[explicit px width] > canvas[100%]
-  // barv-scroll stays at 100% card width with overflow-x:auto → scrollbar appears
-  // barv-inner is wider than barv-scroll when n is large → content scrolls
-  let inner=ctx.parentElement.classList.contains('barv-inner')?ctx.parentElement:null;
-  if(!inner){
-    const scroll=ctx.parentElement; // .barv-scroll
-    inner=document.createElement('div');
-    inner.className='barv-inner';
-    scroll.insertBefore(inner, scroll.firstChild);
-    inner.appendChild(ctx);
+  // Wrap canvas in .barv-scroll once
+  if(!ctx.parentElement.classList.contains('barv-scroll')){
+    const scroll=document.createElement('div');
+    scroll.className='barv-scroll';
+    ctx.parentElement.insertBefore(scroll,ctx);
+    scroll.appendChild(ctx);
   }
 
-  // COL_W: px per column. Wider for grouped charts.
-  const COL_W=nDs>1?60:48;
-  const MIN_W=400;
-  const totalW=Math.max(n*COL_W, MIN_W);
-  inner.style.width=totalW+'px';
-  inner.style.height='260px';
-  inner.style.display='block';
-  inner.style.flexShrink='0';
-
-  // Canvas: explicit px size matching inner — avoids DPI issues
-  ctx.style.display='block';
+  // Set canvas SIZE ATTRIBUTES (not CSS) — this is how Chart.js avoids blur
+  const dpr=window.devicePixelRatio||1;
+  ctx.width=totalW*dpr;
+  ctx.height=H*dpr;
   ctx.style.width=totalW+'px';
-  ctx.style.height='260px';
+  ctx.style.height=H+'px';
+  ctx.style.display='block';
 
-  CHS[id]=new Chart(ctx,{
+  CHS[id]=new Chart(ctx.getContext('2d'),{
     type:'bar',
     data:{labels,datasets},
     options:{
       responsive:false,
       maintainAspectRatio:false,
       animation:{duration:200},
+      devicePixelRatio:dpr,
       plugins:{
         legend:legendPos?{position:legendPos,labels:{font:{family:'DM Sans',size:10},boxWidth:10}}:{display:false},
         tooltip:{callbacks:tooltipCb}
@@ -1026,7 +1020,6 @@ function mkBarVScroll(id, labels, datasets, yTickCb, tooltipCb, legendPos){
     }
   });
 }
-
 function toggleSortV(key){
   BSORTV[key]=BSORTV[key]==='desc'?'asc':'desc';
   const btn=document.getElementById('sb-'+key);
