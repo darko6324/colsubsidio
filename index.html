@@ -120,11 +120,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--gray);color:var(--text);m
 .ct{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
 .cs{font-size:10px;color:var(--muted);margin-bottom:14px}
 canvas{max-height:260px}
-.barchart-scroll{overflow-y:auto;overflow-x:hidden;border-radius:8px}
+.barchart-scroll{overflow-y:auto;overflow-x:hidden;border-radius:8px;position:relative}
 .barchart-scroll::-webkit-scrollbar{width:4px}
 .barchart-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
 .barchart-scroll::-webkit-scrollbar-track{background:transparent}
-.barchart-scroll canvas{max-height:none !important}
+.barchart-scroll .barchart-inner{position:relative}
+.barchart-scroll .barchart-inner canvas{display:block;max-height:none !important}
 
 /* TABLE */
 .tw{overflow-x:auto}
@@ -269,7 +270,6 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
 
 <!-- ==================== GENERAL ==================== -->
 <section class="page on" id="page-general">
-  <div id="fecha-debug-bar" style="display:none"><span id="dbg-campo"></span><span id="dbg-sinfecha"></span><span id="dbg-muestra"></span><span id="dbg-years"></span></div>
   <div class="hero">
     <h1>Dashboard Operación Logística<br><span style="color:var(--yellow)">Colsubsidio</span></h1>
     <p>KPIs consolidados NC + CROSS. Usa los filtros de origen, ciudad, tipo de servicio, novedad y fecha para segmentar.</p>
@@ -744,35 +744,7 @@ function detectFields(data){
   console.log('%cTodas las columnas disponibles:','color:#64748b',cols);
 
   // Muestra sample de valores de fecha para confirmar que es la columna correcta
-  if(F.fecha){
-    const sample=[...new Set(data.slice(0,200).map(r=>r[F.fecha]).filter(Boolean))].slice(0,6);
-    console.log('%cMuestra fecha_entrega (primeros valores únicos):','color:#10b981;font-weight:bold',sample);
-    // Populate debug bar
-    const sinFecha=data.filter(r=>!r[F.fecha]||r[F.fecha].toString().trim()==='').length;
-    const bar=document.getElementById('fecha-debug-bar');
-    if(bar){
-      bar.style.display='block';
-      // Contar registros por año
-      const yearCount={};
-      data.filter(r=>(r[F.fecha]||'').trim()!=='').forEach(r=>{
-        const d=getFecha(r);
-        if(d){const y=d.getFullYear();yearCount[y]=(yearCount[y]||0)+1;}
-      });
-      const yearStr=Object.entries(yearCount).sort().map(([y,n])=>`${y}: ${n.toLocaleString('es-CO')} registros`).join(' | ');
-      document.getElementById('dbg-campo').textContent=F.fecha;
-      document.getElementById('dbg-muestra').textContent=sample.join(' · ');
-      document.getElementById('dbg-sinfecha').textContent=sinFecha.toLocaleString('es-CO');
-      document.getElementById('dbg-years').textContent=yearStr||'(sin datos de fecha válidos)';
-    }
-  } else {
-    const bar=document.getElementById('fecha-debug-bar');
-    if(bar){
-      bar.style.display='block';
-      bar.style.background='#fee2e2';bar.style.borderColor='#ef4444';bar.style.color='#991b1b';
-      document.getElementById('dbg-campo').textContent='❌ NO DETECTADO — verifica nombre de columna';
-      document.getElementById('dbg-muestra').textContent='N/A';
-    }
-  }
+
 }
 
 const getCiu=r=>N(gv(r,F.ciu))||'SIN CIUDAD';
@@ -1001,40 +973,54 @@ function toggleSort(key){
 }
 
 function mkBarH(id,labels,vals,colors,isPct=false,maxV=null,fullLabels=null){
-  dc(id);const ctx=document.getElementById(id);if(!ctx)return;
+  // Destroy existing chart instance without removing the canvas from DOM
+  if(CHS[id]){CHS[id].destroy();delete CHS[id];}
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
   const tLabels=fullLabels||labels;
   const n=labels.length;
-  // Each bar row: 26px bar + spacing. Visible window: max 9 rows (~280px), then scroll
-  // Height: each row = 38px, capped at 9 visible rows then scroll
-  const ROW_H=38;
-  const OVERHEAD=32;
-  const VISIBLE_ROWS=9;
-  const totalH=Math.max(n*ROW_H+OVERHEAD, 120);
-  const visibleH=Math.min(totalH, VISIBLE_ROWS*ROW_H+OVERHEAD);
-  // Wrap canvas in scrollable div (only once)
-  const parent=ctx.parentElement;
-  if(!parent.classList.contains('barchart-scroll')){
-    const wrapper=document.createElement('div');
-    wrapper.className='barchart-scroll';
-    parent.insertBefore(wrapper,ctx);
-    wrapper.appendChild(ctx);
+
+  // Calculate heights: each row 36px, max 9 rows visible, then scroll
+  const ROW_H=36, OVERHEAD=28, MAX_ROWS=9;
+  const totalH=Math.max(n*ROW_H+OVERHEAD, 100);
+  const visibleH=Math.min(totalH, MAX_ROWS*ROW_H+OVERHEAD);
+
+  // Build wrapper once: [.barchart-scroll > .barchart-inner > canvas]
+  if(!ctx.parentElement.classList.contains('barchart-inner')){
+    const inner=document.createElement('div');
+    inner.className='barchart-inner';
+    const scroll=document.createElement('div');
+    scroll.className='barchart-scroll';
+    ctx.parentElement.insertBefore(scroll,ctx);
+    scroll.appendChild(inner);
+    inner.appendChild(ctx);
   }
-  const wrapper=ctx.parentElement;
-  wrapper.style.maxHeight=visibleH+'px';
-  ctx.style.height=totalH+'px';
-  ctx.style.width='100%';
-  CHS[id]=new Chart(ctx.getContext('2d'),{
+  const inner=ctx.parentElement;
+  const scroll=inner.parentElement;
+  scroll.style.maxHeight=visibleH+'px';
+  inner.style.height=totalH+'px';
+  ctx.style.cssText='display:block;width:100%;height:100%';
+
+  CHS[id]=new Chart(ctx,{
     type:'bar',
-    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:4,borderSkipped:false,maxBarThickness:28,minBarLength:4}]},
-    options:{responsive:false,maintainAspectRatio:false,indexAxis:'y',
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:4,borderSkipped:false,maxBarThickness:26,minBarLength:3}]},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      animation:{duration:250},
+      indexAxis:'y',
       plugins:{legend:{display:false},tooltip:{callbacks:{
         title:tt=>tLabels[tt[0].dataIndex]||tt[0].label,
         label:c=>isPct?` ${c.raw.toFixed(1)}%`:` ${fmt(c.raw)}`
       }}},
-      scales:{x:{beginAtZero:true,...(isPct?{max:maxV||100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}}}:{ticks:{font:{family:'DM Mono',size:10}}}),grid:{color:'#f1f5f9'}},
-              y:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}}}
+      scales:{
+        x:{beginAtZero:true,...(isPct?{max:maxV||100,ticks:{callback:v=>v+'%',font:{family:'DM Mono',size:10}}}:{ticks:{font:{family:'DM Mono',size:10}}}),grid:{color:'#f1f5f9'}},
+        y:{ticks:{font:{family:'DM Sans',size:10}},grid:{display:false}}
+      }
+    }
   });
 }
+
 
 function mkDonut(id,labels,vals,colors){
   dc(id);const ctx=document.getElementById(id);if(!ctx)return;
@@ -1155,6 +1141,7 @@ function buildTrend(data){
           ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v,font:{family:'DM Mono',size:10}},
           grid:{display:false}},
         x:{ticks:{font:{family:'DM Sans',size:10},maxRotation:45},
+          offset:allLabels.length<=3,
           grid:{
             color:ctx2=>ctx2.index===splitIdx?'rgba(245,158,11,0.6)':' #f1f5f9',
             lineWidth:ctx2=>ctx2.index===splitIdx?2:1
