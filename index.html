@@ -70,6 +70,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--gray);color:var(--text);m
 .pill.on{background:var(--blue);border-color:var(--blue);color:white}
 .pill:hover:not(.on){border-color:var(--blue);color:var(--blue)}
 .brst{height:32px;padding:0 12px;background:var(--blue-lt);color:var(--blue);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer}
+.msel-wrap{position:relative;display:inline-block;vertical-align:middle}
+.msel-trigger{height:32px;padding:0 28px 0 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:white;outline:none;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;min-width:140px;display:flex;align-items:center;gap:5px;transition:border-color .15s;user-select:none;position:relative}
+.msel-trigger:focus,.msel-trigger.open{border-color:var(--blue)}
+.msel-trigger::after{content:'▾';position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--muted);pointer-events:none}
+.msel-trigger .msel-badge{background:var(--blue);color:white;border-radius:99px;font-size:9px;font-weight:700;padding:1px 5px;margin-left:2px;flex-shrink:0}
+.msel-dropdown{position:absolute;top:calc(100% + 4px);left:0;min-width:260px;max-width:340px;background:white;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.13);z-index:9999;overflow:hidden;display:none}
+.msel-dropdown.open{display:block}
+.msel-search{padding:8px 10px;border-bottom:1px solid var(--border)}
+.msel-search input{width:100%;height:28px;padding:0 8px;border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;transition:border-color .15s}
+.msel-search input:focus{border-color:var(--blue)}
+.msel-actions{display:flex;gap:6px;padding:5px 10px;border-bottom:1px solid var(--border)}
+.msel-act-btn{font-size:10px;font-weight:700;color:var(--blue);background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px}
+.msel-act-btn:hover{background:var(--blue-lt)}
+.msel-list{max-height:220px;overflow-y:auto;padding:4px 0}
+.msel-list::-webkit-scrollbar{width:4px}
+.msel-list::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
+.msel-item{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;transition:background .1s;font-size:12px}
+.msel-item:hover{background:var(--blue-lt)}
+.msel-item.selected{background:#eef4fb}
+.msel-item input[type=checkbox]{width:13px;height:13px;accent-color:var(--blue);flex-shrink:0;cursor:pointer}
+.msel-item .msel-cod{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:auto;flex-shrink:0}
+.msel-empty{padding:12px;text-align:center;font-size:11px;color:var(--muted)}
 .sort-btn{height:24px;padding:0 9px;background:var(--blue-lt);color:var(--blue);border:1.5px solid var(--border);border-radius:6px;font-family:'DM Mono',sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
 .sort-btn:hover{background:var(--blue);color:white;border-color:var(--blue)}
 .card-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:2px}
@@ -225,7 +247,17 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   <span class="fl">Novedad</span>
   <select class="fsel" id="f-nov"><option value="">Todas</option></select>
   <span class="fl">Convenio</span>
-  <select class="fsel" id="f-esp"><option value="">Todos</option></select>
+  <div class="msel-wrap" id="msel-wrap-esp">
+    <div class="msel-trigger" id="msel-trigger-esp" tabindex="0">Todos los convenios</div>
+    <div class="msel-dropdown" id="msel-drop-esp">
+      <div class="msel-search"><input type="text" id="msel-search-esp" placeholder="Buscar convenio o código…" autocomplete="off"/></div>
+      <div class="msel-actions">
+        <button class="msel-act-btn" onclick="mselSelectAll('esp')">✓ Todos</button>
+        <button class="msel-act-btn" onclick="mselClearAll('esp')">✕ Ninguno</button>
+      </div>
+      <div class="msel-list" id="msel-list-esp"></div>
+    </div>
+  </div>
   <span class="fl">Fecha Entrega</span>
   <select class="fsel" id="f-mes"><option value="">Todos los meses</option></select>
   <button class="brst" id="btn-reset">↺ Limpiar</button>
@@ -343,7 +375,17 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
     <select id="tf-tipo" class="fsel" style="font-size:12px"><option value="">Todos los tipos</option></select>
     <select id="tf-mes" class="fsel" style="font-size:12px"><option value="">Todos los meses</option></select>
     <select id="tf-origen" class="fsel" style="font-size:12px"><option value="">NC + CROSS</option><option value="NC">Solo NC</option><option value="CROSS">Solo CROSS</option></select>
-    <select id="tf-esp" class="fsel" style="font-size:12px"><option value="">Todos los convenios</option></select>
+    <div class="msel-wrap" id="msel-wrap-tfesp">
+      <div class="msel-trigger" id="msel-trigger-tfesp" tabindex="0">Todos los convenios</div>
+      <div class="msel-dropdown" id="msel-drop-tfesp">
+        <div class="msel-search"><input type="text" id="msel-search-tfesp" placeholder="Buscar convenio o código…" autocomplete="off"/></div>
+        <div class="msel-actions">
+          <button class="msel-act-btn" onclick="mselSelectAll('tfesp')">✓ Todos</button>
+          <button class="msel-act-btn" onclick="mselClearAll('tfesp')">✕ Ninguno</button>
+        </div>
+        <div class="msel-list" id="msel-list-tfesp"></div>
+      </div>
+    </div>
     <button id="tf-reset" class="brst">↺ Limpiar</button>
   </div>
 
@@ -471,7 +513,7 @@ const PROXIES=[
 let RNC=[],RCR=[],F={};
 let CHS={},MI=null,ML=[];
 let DD=[],DP=1; const PG=25;
-let ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',esp:'',mes:'',srch:''};
+let ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',esp:new Set(),mes:'',srch:''};
 
 // ════════════════════════════════════════════════
 // CIUDAD COORDS
@@ -683,6 +725,7 @@ function detectFields(data){
   F.pe   =findExact('pe','tiempo_pe','dias_pe','promedio_pe');
   F.tipo =findFuzzy('tipo_servicio','tipo_de_servicio','tipo','servicio','modalidad','tipo_guia');
   F.esp  =findFuzzy('especialidad','especialidad_servicio','esp','rama','categoria','linea');
+  F.cod  =findFuzzy('cod_especialidades','cod_especialidad','codigo_especialidad','cod_esp');
   F.estado=findExact('estado','estado_guia','estado_servicio');
   // Fechas para cálculo de días hábiles PE (col M = cierre, col K = aceptacion)
   F.fechaCierre=findExact('fecha_cierre_o_congelado','fecha_cierre','fecha_congelado');
@@ -782,7 +825,7 @@ function getFiltered(){
   if(ST.ciudad) d=d.filter(r=>getCiu(r)===ST.ciudad);
   if(ST.tipo)   d=d.filter(r=>getTipo(r)===ST.tipo);
   if(ST.nov)    d=d.filter(r=>getNov(r)===ST.nov);
-  if(ST.esp)    d=d.filter(r=>getEsp(r)===ST.esp);
+  if(ST.esp.size)d=d.filter(r=>ST.esp.has(getEsp(r)));
   if(ST.mes) d=d.filter(r=>{const x=getFecha(r);if(!x)return false;const k=`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`;return k===ST.mes;});
   return d;
 }
@@ -961,10 +1004,14 @@ function mkBarH(id,labels,vals,colors,isPct=false,maxV=null,fullLabels=null){
   dc(id);const ctx=document.getElementById(id);if(!ctx)return;
   const tLabels=fullLabels||labels;
   const n=labels.length;
-  const ROW_H=34; // px per bar row
-  const OVERHEAD=40; // axis overhead
-  const totalH=Math.max(160, n*ROW_H+OVERHEAD);
-  const visibleH=Math.min(totalH, 400); // max visible height before scroll kicks in
+  // Each bar row: 26px bar + spacing. Visible window: max 9 rows (~280px), then scroll
+  const BAR_H=26;   // rendered bar height (px)
+  const ROW_PAD=10; // padding between bars
+  const ROW_H=BAR_H+ROW_PAD;
+  const OVERHEAD=36; // x-axis + top padding
+  const VISIBLE_ROWS=9; // rows shown before scroll activates
+  const totalH=n*ROW_H+OVERHEAD;
+  const visibleH=Math.min(totalH, VISIBLE_ROWS*ROW_H+OVERHEAD);
   // Wrap canvas in scrollable div (only once)
   const parent=ctx.parentElement;
   if(!parent.classList.contains('barchart-scroll')){
@@ -973,14 +1020,13 @@ function mkBarH(id,labels,vals,colors,isPct=false,maxV=null,fullLabels=null){
     parent.insertBefore(wrapper,ctx);
     wrapper.appendChild(ctx);
   }
-  // Set wrapper and canvas height
   const wrapper=ctx.parentElement;
   wrapper.style.maxHeight=visibleH+'px';
   ctx.style.height=totalH+'px';
   ctx.style.width='100%';
   CHS[id]=new Chart(ctx.getContext('2d'),{
     type:'bar',
-    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:5,borderSkipped:false,barThickness:22}]},
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:4,borderSkipped:false,barThickness:BAR_H}]},
     options:{responsive:false,maintainAspectRatio:false,indexAxis:'y',
       plugins:{legend:{display:false},tooltip:{callbacks:{
         title:tt=>tLabels[tt[0].dataIndex]||tt[0].label,
@@ -1140,7 +1186,7 @@ function buildMix(data){
 function buildCiuVol(data){
   const c={};data.forEach(r=>{const x=getCiu(r);if(x!=='SIN CIUDAD')c[x]=(c[x]||0)+1;});
   let top=Object.entries(c).sort((a,b)=>BSORT.vol==='desc'?b[1]-a[1]:a[1]-b[1]);if(!top.length)return;
-  const colors_vol=top.map((_,i)=>P12[i%P12.length]);
+  const colors_vol=top.map(()=>'#005596');
   mkBarH('ch-vol',top.map(x=>abreviar(x[0]).slice(0,20)),top.map(x=>x[1]),colors_vol,false,null,top.map(x=>x[0]));
 }
 
@@ -1443,7 +1489,7 @@ function buildNovedades(data){
 // ════════════════════════════════════════════════
 
 // Estado de filtros de tiempos
-const TS={ciudad:'',tipo:'',mes:'',origen:'',esp:''};
+const TS={ciudad:'',tipo:'',mes:'',origen:'',esp:new Set()};
 // Sort direction per horizontal bar chart: 'desc'=mayor→menor (default), 'asc'=menor→mayor
 const BSORT={vol:'desc',efec:'desc',tipoefe:'desc',espefe:'desc'};
 
@@ -1488,7 +1534,7 @@ function getTiemposFiltered(base){
   let d=[...base];
   if(TS.ciudad) d=d.filter(r=>getCiu(r)===TS.ciudad);
   if(TS.tipo)   d=d.filter(r=>getTipo(r)===TS.tipo);
-  if(TS.esp)    d=d.filter(r=>getEsp(r)===TS.esp);
+  if(TS.esp.size)d=d.filter(r=>TS.esp.has(getEsp(r)));
   if(TS.origen) d=d.filter(r=>r._o===TS.origen);
   if(TS.mes){
     const {fFecha}=detectTimeCols(base);
@@ -1587,10 +1633,16 @@ function buildTiempos(baseData){
       months.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;tfMes.appendChild(o);});
     }
   }
-  const tfEsp=document.getElementById('tf-esp');
-  if(tfEsp&&tfEsp.options.length<=1){
-    const esps=[...new Set(baseData.map(r=>getEsp(r)).filter(e=>e&&e!=='SIN ESPECIALIDAD'))].sort();
-    esps.forEach(e=>{const o=document.createElement('option');o.value=e;o.textContent=e.replace(/^-|-$/g,'').trim();tfEsp.appendChild(o);});
+  // Build tfesp msel (always rebuild on new data)
+  {
+    const espCodMap2={};
+    baseData.forEach(r=>{
+      const e=getEsp(r);
+      if(!e||e==='SIN ESPECIALIDAD')return;
+      if(!espCodMap2[e]&&F.cod){const c=gv(r,F.cod);if(c)espCodMap2[e]=c.toString().trim();}
+    });
+    const esps2=[...new Set(baseData.map(r=>getEsp(r)).filter(e=>e&&e!=='SIN ESPECIALIDAD'))].sort();
+    mselBuildItems('tfesp', esps2, espCodMap2, TS.esp);
   }
 
   const data=getTiemposFiltered(baseData);
@@ -1842,8 +1894,15 @@ function populateFilters(data){
   document.getElementById('f-tipo').innerHTML='<option value="">Todos los tipos</option>'+tipos.map(t=>`<option value="${t}">${t}</option>`).join('');
   document.getElementById('f-nov').innerHTML='<option value="">Todas las novedades</option>'+novs.map(n=>`<option value="${n}">${n}</option>`).join('');
   document.getElementById('f-mes').innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>{const[y,mo]=m.split('-');return `<option value="${m}">${mesNombres[+mo]} ${y}</option>`;}).join('');
+  // Build esp→cod map from data
+  const espCodMap={};
+  data.forEach(r=>{
+    const e=getEsp(r);
+    if(!e||e==='SIN ESPECIALIDAD')return;
+    if(!espCodMap[e]&&F.cod){const c=gv(r,F.cod);if(c)espCodMap[e]=c.toString().trim();}
+  });
   const esps=[...new Set(data.map(getEsp).filter(e=>e&&e!=='SIN ESPECIALIDAD'))].sort();
-  document.getElementById('f-esp').innerHTML='<option value="">Todos los convenios</option>'+esps.map(e=>`<option value="${e}">${e.replace(/^-|-$/g,'').trim()}</option>`).join('');
+  mselBuildItems('esp', esps, espCodMap, ST.esp);
 }
 
 // ════════════════════════════════════════════════
@@ -2077,18 +2136,136 @@ document.querySelectorAll('.pill[data-o]').forEach(p=>{
 document.getElementById('f-ciudad').addEventListener('change',e=>{ST.ciudad=e.target.value;update();});
 document.getElementById('f-tipo').addEventListener('change',e=>{ST.tipo=e.target.value;update();});
 document.getElementById('f-nov').addEventListener('change',e=>{ST.nov=e.target.value;update();});
-document.getElementById('f-esp').addEventListener('change',e=>{ST.esp=e.target.value;update();});
+
+// ════════════════════════════════════════════════
+// MSEL — Multi-select with search engine
+// ════════════════════════════════════════════════
+// Registry: id → { items:[{val,label,cod}], selected:Set, stateKey, onchange }
+const MSEL={};
+
+function mselRegister(id, stateObj, stateKey, onChangeFn){
+  MSEL[id]={items:[], selected:stateObj[stateKey], stateObj, stateKey, onChangeFn};
+  // Trigger open/close
+  const trigger=document.getElementById('msel-trigger-'+id);
+  const drop=document.getElementById('msel-drop-'+id);
+  const searchEl=document.getElementById('msel-search-'+id);
+  if(!trigger||!drop)return;
+  trigger.addEventListener('click',e=>{e.stopPropagation();mselToggleDrop(id);});
+  trigger.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();mselToggleDrop(id);}});
+  if(searchEl){
+    searchEl.addEventListener('input',()=>mselFilter(id, searchEl.value));
+    searchEl.addEventListener('click',e=>e.stopPropagation());
+  }
+  // Close on outside click
+  document.addEventListener('click',e=>{
+    const wrap=document.getElementById('msel-wrap-'+id);
+    if(wrap&&!wrap.contains(e.target))mselCloseDrop(id);
+  });
+}
+
+function mselToggleDrop(id){
+  const drop=document.getElementById('msel-drop-'+id);
+  const trigger=document.getElementById('msel-trigger-'+id);
+  const isOpen=drop.classList.contains('open');
+  // Close all others first
+  Object.keys(MSEL).forEach(k=>{if(k!==id)mselCloseDrop(k);});
+  if(isOpen){mselCloseDrop(id);}
+  else{
+    drop.classList.add('open');
+    trigger.classList.add('open');
+    const si=document.getElementById('msel-search-'+id);
+    if(si){si.value='';mselFilter(id,'');si.focus();}
+  }
+}
+
+function mselCloseDrop(id){
+  const drop=document.getElementById('msel-drop-'+id);
+  const trigger=document.getElementById('msel-trigger-'+id);
+  if(drop)drop.classList.remove('open');
+  if(trigger)trigger.classList.remove('open');
+}
+
+function mselBuildItems(id, vals, codMap, selectedSet){
+  if(!MSEL[id])return;
+  MSEL[id].items=vals.map(v=>({val:v, label:v.replace(/^-|-$/g,'').trim(), cod:codMap[v]||''}));
+  MSEL[id].selected=selectedSet;
+  mselRenderList(id,'');
+  mselUpdateTrigger(id);
+}
+
+function mselRenderList(id, query){
+  const m=MSEL[id];if(!m)return;
+  const list=document.getElementById('msel-list-'+id);if(!list)return;
+  const q=query.toLowerCase().trim();
+  const filtered=q
+    ? m.items.filter(it=>it.label.toLowerCase().includes(q)||it.cod.toLowerCase().includes(q))
+    : m.items;
+  if(!filtered.length){list.innerHTML='<div class="msel-empty">Sin resultados</div>';return;}
+  list.innerHTML=filtered.map(it=>{
+    const sel=m.selected.has(it.val);
+    const codHtml=it.cod?`<span class="msel-cod">${it.cod}</span>`:'';
+    return `<label class="msel-item${sel?' selected':''}" onclick="event.preventDefault();mselToggleItem('${id}','${it.val.replace(/'/g,"\'")}',this)">
+      <input type="checkbox" ${sel?'checked':''} onclick="event.stopPropagation()"/>
+      <span>${it.label}</span>${codHtml}
+    </label>`;
+  }).join('');
+}
+
+function mselToggleItem(id, val, labelEl){
+  const m=MSEL[id];if(!m)return;
+  if(m.selected.has(val)){m.selected.delete(val);labelEl.classList.remove('selected');labelEl.querySelector('input').checked=false;}
+  else{m.selected.add(val);labelEl.classList.add('selected');labelEl.querySelector('input').checked=true;}
+  mselUpdateTrigger(id);
+  if(m.onChangeFn)m.onChangeFn();
+}
+
+function mselUpdateTrigger(id){
+  const m=MSEL[id];if(!m)return;
+  const trigger=document.getElementById('msel-trigger-'+id);if(!trigger)return;
+  const n=m.selected.size;
+  if(n===0){trigger.innerHTML='Todos los convenios';}
+  else if(n===1){
+    const lbl=[...m.selected][0].replace(/^-|-$/g,'').trim().slice(0,22);
+    trigger.innerHTML=`${lbl}<span class="msel-badge">1</span>`;
+  } else {
+    trigger.innerHTML=`${n} convenios<span class="msel-badge">${n}</span>`;
+  }
+  // Re-add the ::after arrow via a span (since innerHTML replaces it)
+}
+
+function mselFilter(id, q){mselRenderList(id,q);}
+
+function mselSelectAll(id){
+  const m=MSEL[id];if(!m)return;
+  m.items.forEach(it=>m.selected.add(it.val));
+  const si=document.getElementById('msel-search-'+id);
+  mselRenderList(id,si?si.value:'');
+  mselUpdateTrigger(id);
+  if(m.onChangeFn)m.onChangeFn();
+}
+
+function mselClearAll(id){
+  const m=MSEL[id];if(!m)return;
+  m.selected.clear();
+  const si=document.getElementById('msel-search-'+id);
+  mselRenderList(id,si?si.value:'');
+  mselUpdateTrigger(id);
+  if(m.onChangeFn)m.onChangeFn();
+}
+
+// f-esp handled by mselToggle
 document.getElementById('f-mes').addEventListener('change',e=>{ST.mes=e.target.value;update();});
 document.getElementById('srch').addEventListener('input',e=>{ST.srch=e.target.value;buildDetail(getFiltered());});
 document.getElementById('btn-reset').addEventListener('click',()=>{
-  ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',esp:'',mes:'',srch:''};
-  ['f-ciudad','f-tipo','f-nov','f-esp','f-mes','srch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',esp:new Set(),mes:'',srch:''};
+  ['f-ciudad','f-tipo','f-nov','f-mes','srch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  mselClearAll('esp');
   document.querySelectorAll('.pill[data-o]').forEach(p=>p.classList.add('on'));
   update();
 });
 
 // FILTROS TIEMPOS
-['tf-ciudad','tf-tipo','tf-mes','tf-origen','tf-esp'].forEach(id=>{
+['tf-ciudad','tf-tipo','tf-mes','tf-origen'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el)return;
   el.addEventListener('change',()=>{
@@ -2096,17 +2273,21 @@ document.getElementById('btn-reset').addEventListener('click',()=>{
     TS.tipo=document.getElementById('tf-tipo').value;
     TS.mes=document.getElementById('tf-mes').value;
     TS.origen=document.getElementById('tf-origen').value;
-    TS.esp=document.getElementById('tf-esp').value;
     buildTiempos(getFiltered());
   });
 });
 document.getElementById('tf-reset')&&document.getElementById('tf-reset').addEventListener('click',()=>{
-  TS.ciudad='';TS.tipo='';TS.mes='';TS.origen='';TS.esp='';
-  ['tf-ciudad','tf-tipo','tf-mes','tf-origen','tf-esp'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  TS.ciudad='';TS.tipo='';TS.mes='';TS.origen='';TS.esp=new Set();
+  ['tf-ciudad','tf-tipo','tf-mes','tf-origen'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  mselClearAll('tfesp');
   buildTiempos(getFiltered());
 });
 
 // REFRESH BUTTON
+// Register msel widgets
+mselRegister('esp',   ST,  'esp',   ()=>{update();});
+mselRegister('tfesp', TS,  'esp',   ()=>{buildTiempos(getFiltered());});
+
 document.getElementById('btn-refresh').addEventListener('click',async()=>{
   const btn=document.getElementById('btn-refresh');
   const icon=document.getElementById('refresh-icon');
