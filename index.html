@@ -214,6 +214,8 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   <select class="fsel" id="f-tipo"><option value="">Todos</option></select>
   <span class="fl">Novedad</span>
   <select class="fsel" id="f-nov"><option value="">Todas</option></select>
+  <span class="fl">Convenio</span>
+  <select class="fsel" id="f-esp"><option value="">Todos</option></select>
   <span class="fl">Fecha Entrega</span>
   <select class="fsel" id="f-mes"><option value="">Todos los meses</option></select>
   <button class="brst" id="btn-reset">↺ Limpiar</button>
@@ -331,6 +333,7 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
     <select id="tf-tipo" class="fsel" style="font-size:12px"><option value="">Todos los tipos</option></select>
     <select id="tf-mes" class="fsel" style="font-size:12px"><option value="">Todos los meses</option></select>
     <select id="tf-origen" class="fsel" style="font-size:12px"><option value="">NC + CROSS</option><option value="NC">Solo NC</option><option value="CROSS">Solo CROSS</option></select>
+    <select id="tf-esp" class="fsel" style="font-size:12px"><option value="">Todos los convenios</option></select>
     <button id="tf-reset" class="brst">↺ Limpiar</button>
   </div>
 
@@ -458,7 +461,7 @@ const PROXIES=[
 let RNC=[],RCR=[],F={};
 let CHS={},MI=null,ML=[];
 let DD=[],DP=1; const PG=25;
-let ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',mes:'',srch:''};
+let ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',esp:'',mes:'',srch:''};
 
 // ════════════════════════════════════════════════
 // CIUDAD COORDS
@@ -769,6 +772,7 @@ function getFiltered(){
   if(ST.ciudad) d=d.filter(r=>getCiu(r)===ST.ciudad);
   if(ST.tipo)   d=d.filter(r=>getTipo(r)===ST.tipo);
   if(ST.nov)    d=d.filter(r=>getNov(r)===ST.nov);
+  if(ST.esp)    d=d.filter(r=>getEsp(r)===ST.esp);
   if(ST.mes) d=d.filter(r=>{const x=getFecha(r);if(!x)return false;const k=`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`;return k===ST.mes;});
   return d;
 }
@@ -1391,7 +1395,7 @@ function buildNovedades(data){
 // ════════════════════════════════════════════════
 
 // Estado de filtros de tiempos
-const TS={ciudad:'',tipo:'',mes:'',origen:''};
+const TS={ciudad:'',tipo:'',mes:'',origen:'',esp:''};
 
 // Formatea horas a string legible: "2h 30m" o "1d 4h"
 function fmtHrs(horas){
@@ -1434,6 +1438,7 @@ function getTiemposFiltered(base){
   let d=[...base];
   if(TS.ciudad) d=d.filter(r=>getCiu(r)===TS.ciudad);
   if(TS.tipo)   d=d.filter(r=>getTipo(r)===TS.tipo);
+  if(TS.esp)    d=d.filter(r=>getEsp(r)===TS.esp);
   if(TS.origen) d=d.filter(r=>r._o===TS.origen);
   if(TS.mes){
     const {fFecha}=detectTimeCols(base);
@@ -1531,6 +1536,11 @@ function buildTiempos(baseData){
       }).filter(Boolean))].sort();
       months.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;tfMes.appendChild(o);});
     }
+  }
+  const tfEsp=document.getElementById('tf-esp');
+  if(tfEsp&&tfEsp.options.length<=1){
+    const esps=[...new Set(baseData.map(r=>getEsp(r)).filter(e=>e&&e!=='SIN ESPECIALIDAD'))].sort();
+    esps.forEach(e=>{const o=document.createElement('option');o.value=e;o.textContent=e.replace(/^-|-$/g,'').trim();tfEsp.appendChild(o);});
   }
 
   const data=getTiemposFiltered(baseData);
@@ -1782,6 +1792,8 @@ function populateFilters(data){
   document.getElementById('f-tipo').innerHTML='<option value="">Todos los tipos</option>'+tipos.map(t=>`<option value="${t}">${t}</option>`).join('');
   document.getElementById('f-nov').innerHTML='<option value="">Todas las novedades</option>'+novs.map(n=>`<option value="${n}">${n}</option>`).join('');
   document.getElementById('f-mes').innerHTML='<option value="">Todos los meses</option>'+meses.map(m=>{const[y,mo]=m.split('-');return `<option value="${m}">${mesNombres[+mo]} ${y}</option>`;}).join('');
+  const esps=[...new Set(data.map(getEsp).filter(e=>e&&e!=='SIN ESPECIALIDAD'))].sort();
+  document.getElementById('f-esp').innerHTML='<option value="">Todos los convenios</option>'+esps.map(e=>`<option value="${e}">${e.replace(/^-|-$/g,'').trim()}</option>`).join('');
 }
 
 // ════════════════════════════════════════════════
@@ -2015,17 +2027,18 @@ document.querySelectorAll('.pill[data-o]').forEach(p=>{
 document.getElementById('f-ciudad').addEventListener('change',e=>{ST.ciudad=e.target.value;update();});
 document.getElementById('f-tipo').addEventListener('change',e=>{ST.tipo=e.target.value;update();});
 document.getElementById('f-nov').addEventListener('change',e=>{ST.nov=e.target.value;update();});
+document.getElementById('f-esp').addEventListener('change',e=>{ST.esp=e.target.value;update();});
 document.getElementById('f-mes').addEventListener('change',e=>{ST.mes=e.target.value;update();});
 document.getElementById('srch').addEventListener('input',e=>{ST.srch=e.target.value;buildDetail(getFiltered());});
 document.getElementById('btn-reset').addEventListener('click',()=>{
-  ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',mes:'',srch:''};
-  ['f-ciudad','f-tipo','f-nov','f-mes','srch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ST={nc:true,cross:true,ciudad:'',tipo:'',nov:'',esp:'',mes:'',srch:''};
+  ['f-ciudad','f-tipo','f-nov','f-esp','f-mes','srch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.querySelectorAll('.pill[data-o]').forEach(p=>p.classList.add('on'));
   update();
 });
 
 // FILTROS TIEMPOS
-['tf-ciudad','tf-tipo','tf-mes','tf-origen'].forEach(id=>{
+['tf-ciudad','tf-tipo','tf-mes','tf-origen','tf-esp'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el)return;
   el.addEventListener('change',()=>{
@@ -2033,12 +2046,13 @@ document.getElementById('btn-reset').addEventListener('click',()=>{
     TS.tipo=document.getElementById('tf-tipo').value;
     TS.mes=document.getElementById('tf-mes').value;
     TS.origen=document.getElementById('tf-origen').value;
+    TS.esp=document.getElementById('tf-esp').value;
     buildTiempos(getFiltered());
   });
 });
 document.getElementById('tf-reset')&&document.getElementById('tf-reset').addEventListener('click',()=>{
-  TS.ciudad='';TS.tipo='';TS.mes='';TS.origen='';
-  ['tf-ciudad','tf-tipo','tf-mes','tf-origen'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  TS.ciudad='';TS.tipo='';TS.mes='';TS.origen='';TS.esp='';
+  ['tf-ciudad','tf-tipo','tf-mes','tf-origen','tf-esp'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   buildTiempos(getFiltered());
 });
 
