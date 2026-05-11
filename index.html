@@ -92,6 +92,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--gray);color:var(--text);m
 .msel-item input[type=checkbox]{width:13px;height:13px;accent-color:var(--blue);flex-shrink:0;cursor:pointer}
 .msel-item .msel-cod{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:auto;flex-shrink:0}
 .msel-empty{padding:12px;text-align:center;font-size:11px;color:var(--muted)}
+.barv-scroll{overflow-x:auto;overflow-y:hidden;width:100%}
+.barv-scroll::-webkit-scrollbar{height:4px}
+.barv-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
+.barv-scroll::-webkit-scrollbar-track{background:transparent}
+.barv-scroll canvas{display:block;max-height:none !important}
 .sort-btn{height:24px;padding:0 9px;background:var(--blue-lt);color:var(--blue);border:1.5px solid var(--border);border-radius:6px;font-family:'DM Mono',sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
 .sort-btn:hover{background:var(--blue);color:white;border-color:var(--blue)}
 .card-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:2px}
@@ -416,23 +421,20 @@ thead th.sortable.desc::after{content:' ↓';opacity:1;color:var(--blue)}
   <!-- Gráficas fila 2 -->
   <div class="ceq">
     <div class="card">
-      <div class="ct">Top 10 Ciudades — Promedio Alistamiento</div>
-      <div class="cs">Ciudades con mayor promedio de horas de alistamiento</div>
-      <canvas id="ch-ti-alist-ciu" style="max-height:260px"></canvas>
+      <div class="card-hdr"><div class="card-hdr-txt"><div class="ct">Ciudades — Promedio Alistamiento</div><div class="cs">Ciudades con mayor promedio de horas de alistamiento</div></div><button class="sort-btn" id="sb-alist-ciu" onclick="toggleSortV('alist-ciu')">↓ Mayor → Menor</button></div>
+      <div class="barv-scroll"><canvas id="ch-ti-alist-ciu"></canvas></div>
     </div>
     <div class="card">
-      <div class="ct">Top 10 Ciudades — Promedio Entrega</div>
-      <div class="cs">Ciudades con mayor promedio de horas de entrega</div>
-      <canvas id="ch-ti-entr-ciu" style="max-height:260px"></canvas>
+      <div class="card-hdr"><div class="card-hdr-txt"><div class="ct">Ciudades — Promedio Entrega</div><div class="cs">Ciudades con mayor promedio de horas de entrega</div></div><button class="sort-btn" id="sb-entr-ciu" onclick="toggleSortV('entr-ciu')">↓ Mayor → Menor</button></div>
+      <div class="barv-scroll"><canvas id="ch-ti-entr-ciu"></canvas></div>
     </div>
   </div>
 
   <!-- Gráficas fila 3 -->
   <div class="ceq">
     <div class="card">
-      <div class="ct">Tiempos por Tipo de Servicio</div>
-      <div class="cs">Alistamiento vs entrega promedio por tipo</div>
-      <canvas id="ch-ti-tipo" style="max-height:260px"></canvas>
+      <div class="card-hdr"><div class="card-hdr-txt"><div class="ct">Tiempos por Tipo de Servicio</div><div class="cs">Alistamiento vs entrega promedio por tipo</div></div><button class="sort-btn" id="sb-ti-tipo" onclick="toggleSortV('ti-tipo')">↓ Mayor → Menor</button></div>
+      <div class="barv-scroll"><canvas id="ch-ti-tipo"></canvas></div>
     </div>
     <div class="card">
       <div class="ct">NC vs CROSS — Comparativo</div>
@@ -972,6 +974,48 @@ function toggleSort(key){
   else if(key==='espefe')buildNovedades(d);
 }
 
+// Build a scrollable vertical bar chart with dynamic width
+function mkBarVScroll(id, labels, datasets, yTickCb, tooltipCb, legendPos){
+  if(CHS[id]){CHS[id].destroy();delete CHS[id];}
+  const ctx=document.getElementById(id);if(!ctx)return;
+  const n=labels.length;
+  const COL_W=52; // px per column group
+  const MIN_W=260;
+  const totalW=Math.max(n*COL_W, MIN_W);
+  // Ensure canvas is inside .barv-scroll
+  const scrollEl=ctx.parentElement.classList.contains('barv-scroll')?ctx.parentElement:null;
+  if(scrollEl){
+    ctx.style.width=totalW+'px';
+    ctx.style.height='260px';
+    ctx.style.display='block';
+    ctx.style.maxHeight='none';
+  }
+  CHS[id]=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets},
+    options:{
+      responsive:false,
+      maintainAspectRatio:false,
+      animation:{duration:250},
+      plugins:{
+        legend:legendPos?{position:legendPos,labels:{font:{family:'DM Sans',size:10},boxWidth:10}}:{display:false},
+        tooltip:{callbacks:tooltipCb}
+      },
+      scales:{
+        x:{ticks:{font:{family:'DM Sans',size:9},maxRotation:40},grid:{display:false}},
+        y:{beginAtZero:true,ticks:{callback:yTickCb,font:{family:'DM Mono',size:9}},grid:{color:'#f1f5f9'}}
+      }
+    }
+  });
+}
+
+function toggleSortV(key){
+  BSORTV[key]=BSORTV[key]==='desc'?'asc':'desc';
+  const btn=document.getElementById('sb-'+key);
+  if(btn){btn.textContent=BSORTV[key]==='desc'?'↓ Mayor → Menor':'↑ Menor → Mayor';}
+  buildTiempos(getFiltered());
+}
+
 function mkBarH(id,labels,vals,colors,isPct=false,maxV=null,fullLabels=null){
   // Destroy existing chart instance without removing the canvas from DOM
   if(CHS[id]){CHS[id].destroy();delete CHS[id];}
@@ -1478,6 +1522,8 @@ function buildNovedades(data){
 const TS={ciudad:'',tipo:'',mes:'',origen:'',esp:new Set()};
 // Sort direction per horizontal bar chart: 'desc'=mayor→menor (default), 'asc'=menor→mayor
 const BSORT={vol:'desc',efec:'desc',tipoefe:'desc',espefe:'desc'};
+// Sort direction for vertical tiempos bar charts
+const BSORTV={'alist-ciu':'desc','entr-ciu':'desc','ti-tipo':'desc'};
 
 // Formatea horas a string legible: "2h 30m" o "1d 4h"
 function fmtHrs(horas){
@@ -1707,24 +1753,30 @@ function buildTiempos(baseData){
     if(a!==null)cityAlist[city].push(a);
     if(e!==null)cityEntr[city].push(e);
   });
-  const topAlistCiu=Object.entries(cityAlist).filter(([,v])=>v.length>=3).map(([c,v])=>[c,avgArr(v)]).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const topEntrCiu=Object.entries(cityEntr).filter(([,v])=>v.length>=3).map(([c,v])=>[c,avgArr(v)]).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const sortedAlist=Object.entries(cityAlist).filter(([,v])=>v.length>=3).map(([c,v])=>[c,avgArr(v)]).sort((a,b)=>BSORTV['alist-ciu']==='desc'?b[1]-a[1]:a[1]-b[1]);
+  const sortedEntr=Object.entries(cityEntr).filter(([,v])=>v.length>=3).map(([c,v])=>[c,avgArr(v)]).sort((a,b)=>BSORTV['entr-ciu']==='desc'?b[1]-a[1]:a[1]-b[1]);
+  const topAlistCiu=sortedAlist; // keep all
+  const topEntrCiu=sortedEntr;
 
-  dc('ch-ti-alist-ciu');const ctxAC=document.getElementById('ch-ti-alist-ciu');if(ctxAC&&topAlistCiu.length){
-    CHS['ch-ti-alist-ciu']=new Chart(ctxAC.getContext('2d'),{
-      type:'bar',data:{labels:topAlistCiu.map(x=>abreviar(x[0]).slice(0,18)),datasets:[{data:topAlistCiu.map(x=>+x[1].toFixed(1)),backgroundColor:'rgba(139,92,246,.8)',borderRadius:5}]},
-      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{title:tt=>topAlistCiu[tt[0].dataIndex][0],label:c=>`${fmtHrs(c.raw)} · ${hrsToDias(c.raw)}`}}},
-        scales:{x:{ticks:{font:{family:'DM Sans',size:9}},grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>fmtHrs(v),font:{family:'DM Mono',size:9}},grid:{color:'#f1f5f9'}}}}
-    });
+  if(topAlistCiu.length){
+    mkBarVScroll('ch-ti-alist-ciu',
+      topAlistCiu.map(x=>abreviar(x[0]).slice(0,16)),
+      [{data:topAlistCiu.map(x=>+x[1].toFixed(1)),backgroundColor:'rgba(139,92,246,.8)',borderRadius:5,maxBarThickness:40}],
+      v=>fmtHrs(v),
+      {title:tt=>topAlistCiu[tt[0].dataIndex][0],label:c=>`${fmtHrs(c.raw)} · ${hrsToDias(c.raw)}`},
+      null
+    );
   }
 
-  dc('ch-ti-entr-ciu');const ctxEC=document.getElementById('ch-ti-entr-ciu');if(ctxEC&&topEntrCiu.length){
+  if(topEntrCiu.length){
     const colors=topEntrCiu.map(([,v])=>v<=4?'#10b981':v<=24?'#f59e0b':'#ef4444');
-    CHS['ch-ti-entr-ciu']=new Chart(ctxEC.getContext('2d'),{
-      type:'bar',data:{labels:topEntrCiu.map(x=>abreviar(x[0]).slice(0,18)),datasets:[{data:topEntrCiu.map(x=>+x[1].toFixed(1)),backgroundColor:colors,borderRadius:5}]},
-      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{title:tt=>topEntrCiu[tt[0].dataIndex][0],label:c=>`${fmtHrs(c.raw)} · ${hrsToDias(c.raw)}`}}},
-        scales:{x:{ticks:{font:{family:'DM Sans',size:9}},grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>fmtHrs(v),font:{family:'DM Mono',size:9}},grid:{color:'#f1f5f9'}}}}
-    });
+    mkBarVScroll('ch-ti-entr-ciu',
+      topEntrCiu.map(x=>abreviar(x[0]).slice(0,16)),
+      [{data:topEntrCiu.map(x=>+x[1].toFixed(1)),backgroundColor:colors,borderRadius:5,maxBarThickness:40}],
+      v=>fmtHrs(v),
+      {title:tt=>topEntrCiu[tt[0].dataIndex][0],label:c=>`${fmtHrs(c.raw)} · ${hrsToDias(c.raw)}`},
+      null
+    );
   }
 
   // --- GRÁFICA 4: Por tipo de servicio ---
@@ -1737,19 +1789,18 @@ function buildTiempos(baseData){
     if(a!==null)tipoAlist[t].push(a);
     if(e!==null)tipoEntr[t].push(e);
   });
-  const tiposSorted=Object.keys(tipoAlist).filter(t=>tipoAlist[t].length>=3).sort((a,b)=>avgArr(tipoAlist[b])-avgArr(tipoAlist[a])).slice(0,8);
-  dc('ch-ti-tipo');const ctxT=document.getElementById('ch-ti-tipo');if(ctxT&&tiposSorted.length){
-    CHS['ch-ti-tipo']=new Chart(ctxT.getContext('2d'),{
-      type:'bar',
-      data:{labels:tiposSorted.map(t=>abreviar(t).slice(0,20)),datasets:[
-        {label:'Alistamiento (horas)',data:tiposSorted.map(t=>+avgArr(tipoAlist[t]).toFixed(1)),backgroundColor:'rgba(139,92,246,.8)',borderRadius:4},
-        {label:'Entrega (horas)',data:tiposSorted.map(t=>+avgArr(tipoEntr[t]||[]).toFixed(1)),backgroundColor:'rgba(0,85,150,.8)',borderRadius:4},
-      ]},
-      options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'DM Sans',size:11},boxWidth:10}},
-        tooltip:{callbacks:{title:tt=>tiposSorted[tt[0].dataIndex],label:c=>`${c.dataset.label}: ${fmtHrs(c.raw)} (${hrsToDias(c.raw)})`}}},
-        scales:{x:{ticks:{font:{family:'DM Sans',size:9}},grid:{display:false}},
-                y:{beginAtZero:true,ticks:{callback:v=>fmtHrs(v),font:{family:'DM Mono',size:9}},grid:{color:'#f1f5f9'}}}}
-    });
+  const tiposSorted=Object.keys(tipoAlist).filter(t=>tipoAlist[t].length>=3).sort((a,b)=>BSORTV['ti-tipo']==='desc'?avgArr(tipoAlist[b])-avgArr(tipoAlist[a]):avgArr(tipoAlist[a])-avgArr(tipoAlist[b]));
+  if(tiposSorted.length){
+    mkBarVScroll('ch-ti-tipo',
+      tiposSorted.map(t=>abreviar(t).slice(0,18)),
+      [
+        {label:'Alistamiento (horas)',data:tiposSorted.map(t=>+avgArr(tipoAlist[t]).toFixed(1)),backgroundColor:'rgba(139,92,246,.8)',borderRadius:4,maxBarThickness:36},
+        {label:'Entrega (horas)',data:tiposSorted.map(t=>+avgArr(tipoEntr[t]||[]).toFixed(1)),backgroundColor:'rgba(0,85,150,.8)',borderRadius:4,maxBarThickness:36},
+      ],
+      v=>fmtHrs(v),
+      {title:tt=>tiposSorted[tt[0].dataIndex],label:c=>`${c.dataset.label}: ${fmtHrs(c.raw)} (${hrsToDias(c.raw)})`},
+      'top'
+    );
   }
 
   // --- GRÁFICA 5: NC vs CROSS ---
