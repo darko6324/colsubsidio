@@ -92,12 +92,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--gray);color:var(--text);m
 .msel-item input[type=checkbox]{width:13px;height:13px;accent-color:var(--blue);flex-shrink:0;cursor:pointer}
 .msel-item .msel-cod{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:auto;flex-shrink:0}
 .msel-empty{padding:12px;text-align:center;font-size:11px;color:var(--muted)}
-.barv-scroll{overflow-x:auto;overflow-y:hidden;width:100%}
-.barv-scroll::-webkit-scrollbar{height:4px}
+.barv-scroll{overflow-x:auto;overflow-y:hidden;width:100%;max-width:100%;box-sizing:border-box}
+.barv-scroll::-webkit-scrollbar{height:5px}
 .barv-scroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
-.barv-scroll::-webkit-scrollbar-track{background:transparent}
-.barv-inner{height:260px;position:relative}
-.barv-inner canvas{position:absolute;inset:0;width:100% !important;height:100% !important}
+.barv-scroll::-webkit-scrollbar-track{background:#f1f5f9;border-radius:99px}
+.barv-inner{height:260px;position:relative;min-width:100%}
+.barv-inner canvas{position:absolute;top:0;left:0;width:100% !important;height:100% !important}
 .sort-btn{height:24px;padding:0 9px;background:var(--blue-lt);color:var(--blue);border:1.5px solid var(--border);border-radius:6px;font-family:'DM Mono',sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
 .sort-btn:hover{background:var(--blue);color:white;border-color:var(--blue)}
 .card-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:2px}
@@ -981,13 +981,9 @@ function mkBarVScroll(id, labels, datasets, yTickCb, tooltipCb, legendPos){
   const ctx=document.getElementById(id);if(!ctx)return;
   const n=labels.length;
   const nDs=datasets.length||1;
-  // 44px per bar + 12px gap; grouped charts need more room
-  const COL_W=nDs>1?60:48;
-  const MIN_W=280;
-  const totalW=Math.max(n*COL_W, MIN_W);
 
-  // Structure: .barv-scroll > .barv-inner[width=totalW] > canvas
-  // Build once, update width on re-render
+  // Structure: .barv-scroll > .barv-inner > canvas
+  // Build wrapper once
   let inner=ctx.parentElement.classList.contains('barv-inner')?ctx.parentElement:null;
   if(!inner){
     const scroll=ctx.parentElement; // .barv-scroll
@@ -996,8 +992,15 @@ function mkBarVScroll(id, labels, datasets, yTickCb, tooltipCb, legendPos){
     scroll.appendChild(inner);
     inner.appendChild(ctx);
   }
+  const scroll=inner.parentElement;
+
+  // COL_W: px per bar (or group). Min width = scroll container width.
+  const COL_W=nDs>1?56:44;
+  const containerW=scroll.clientWidth||600;
+  const totalW=Math.max(n*COL_W, containerW);
   inner.style.width=totalW+'px';
-  // Canvas fills inner 100% — Chart.js reads container size correctly
+
+  // Canvas fills inner via CSS — no inline style needed
   ctx.removeAttribute('style');
 
   CHS[id]=new Chart(ctx,{
@@ -1006,13 +1009,13 @@ function mkBarVScroll(id, labels, datasets, yTickCb, tooltipCb, legendPos){
     options:{
       responsive:true,
       maintainAspectRatio:false,
-      animation:{duration:250},
+      animation:{duration:200},
       plugins:{
         legend:legendPos?{position:legendPos,labels:{font:{family:'DM Sans',size:10},boxWidth:10}}:{display:false},
         tooltip:{callbacks:tooltipCb}
       },
       scales:{
-        x:{ticks:{font:{family:'DM Sans',size:9},maxRotation:40},grid:{display:false}},
+        x:{ticks:{font:{family:'DM Sans',size:9},maxRotation:40,autoSkip:false},grid:{display:false}},
         y:{beginAtZero:true,ticks:{callback:yTickCb,font:{family:'DM Mono',size:9}},grid:{color:'#f1f5f9'}}
       }
     }
